@@ -99,10 +99,10 @@ output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 ```
 
 ### Naming convention
-| Type | Case |
-| --- |------------------------------|
-| Functions/classes | snake_case |
-| Private vars | _camelCase |
-| Global vars | UPPER_SNAKE_CASE |
-| Private global vars | _UPPER_SNAKE_CASE |
+| Type                      | Case |
+|---------------------------|------------------------------|
+| Functions/classes         | snake_case |
+| Private vars              | _camelCase |
+| Global vars               | UPPER_SNAKE_CASE |
+| File-specific global vars | _UPPER_SNAKE_CASE |
 
