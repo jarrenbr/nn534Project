@@ -6,6 +6,8 @@ class folder:
     data = "data/"
     raw = data + "raw/"
     processed = data + 'processed/'
+    misc = "misc/"
+    kmModel = misc + "kmModels/"
 
 @dataclass
 class data:
@@ -15,3 +17,7 @@ class data:
 class file:
     _f = folder
     home1Test = "b1.test.csv"
+
+@dataclass(frozen=True)
+class extensions:
+    kerasModel = ".km"
