@@ -76,6 +76,12 @@ def is_div_3(var:int, verbose:bool=True) -> bool:
     return not var % 3
 
 #correct
+def is_div_3(dividend, verbose=True):
+  if verbose:
+      print("Type of var:", type(dividend))
+  return not dividend % 3
+
+#correct
 def preprocess(df:pd.DataFrame, scaler) -> np.ndarray:
     assert isinstance(df, pd.DataFrame)
     return df.to_numpy() * scaler
