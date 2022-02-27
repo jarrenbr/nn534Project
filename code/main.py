@@ -1,4 +1,6 @@
 from networks.autoencoders import fakeAutoEncoder as fake
+
+
 def main():
     print(fake.fakefunc())
 
