@@ -59,11 +59,15 @@ pip3 install -r requirement.txt
   - [ ] Distribution analysis
 
 ## Standards
+
+### Indentation
 Indentation: tab
 
+###Use asserts
 If an assumption is made while coding, use an assert.
 
-Type as needed for clarity
+### Typing
+Type hint and check as needed for clarity
 ```python
 #too much
 def is_div_3(var:int, verbose:bool=True) -> bool:
@@ -73,8 +77,19 @@ def is_div_3(var:int, verbose:bool=True) -> bool:
 
 #correct
 def preprocess(df:pd.DataFrame, scaler) -> np.ndarray:
-    assert isinstance(df, pd.DataFrame) #if needed
+    assert isinstance(df, pd.DataFrame)
     return df.to_numpy() * scaler
+```
+
+### Strings
+Anything except string casting + concatting
+```python
+#bad
+output = "lorem" + str(1) + " senpai"
+
+#good
+output = "lorem%d senpai" %(1,)
+output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 ```
 
 ### Naming convention
