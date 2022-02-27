@@ -1,11 +1,13 @@
 # nn534Project
 NN 534 Project on Stateful GANs
 
+
 ## Setup
 Python module for mac
 ```bash
 pip3 install -r requirement.txt
 ```
+Tested on Python 3.9
 
 ## Task List
 - [ ] Citation update in Latex
