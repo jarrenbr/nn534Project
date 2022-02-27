@@ -1,13 +1,13 @@
-# nn534Project
-NN 534 Project on Stateful GANs
-
+# Cpts 534 Project
+GAN on [CASAS](https://duckduckgo.com).
 
 ## Setup
-Python module for mac
+Python version: 3.9
+
+Module install for mac:
 ```bash
 pip3 install -r requirement.txt
 ```
-Tested on Python 3.9
 
 ## Task List
 - [ ] Citation update in Latex
@@ -17,7 +17,7 @@ Tested on Python 3.9
 - [ ] Preprocess
 - [ ] Port over ML code
 - [ ] Base GAN
-- [ ] Stateful Gan
+- [ ] Stateful GAN
 - [ ] TSTR
 - [ ] Quantitative
 - [ ] Qualitative

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 import files.filePaths as fp
 from networks.gans import genApi
+from networks.gans import wgan
 
 MODEL_DIR = fp.folder.kmModel + "statefulGan/"
 # def classifier_naming
