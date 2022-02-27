@@ -91,10 +91,10 @@ def preprocess(df:pd.DataFrame, scaler) -> np.ndarray:
 Anything except string casting + concatting
 ```python
 #bad
-output = "lorem" + str(1) + " senpai"
+output = "lorem " + str(1) + " senpai"
 
 #good
-output = "lorem%d senpai" %(1,)
+output = "lorem %d senpai" %(1,)
 output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 ```
 
