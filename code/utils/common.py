@@ -1,13 +1,4 @@
-import copy
-
-miscDir = "misc/"
-dataDir = "datasets/"
-
-import sys
-def get_debug_flag():
-    return sys.gettrace() is not None
-
-DEBUG = get_debug_flag()
+import globalVars as gv
 
 def tf_gpu_cap(percent=.9):
     import tensorflow as tf
@@ -16,7 +7,7 @@ def tf_gpu_cap(percent=.9):
 
 class keras_params:
     def __init__(self, runEpochs):
-        debug = get_debug_flag()
+        debug = gv.get_debug_flag()
         self.verbose = 1 if debug else 0
         self.epochs = 1 if debug else runEpochs
         self.kpKwArgs = {"verbose": self.verbose, "epochs": self.epochs}
