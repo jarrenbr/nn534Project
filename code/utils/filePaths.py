@@ -78,4 +78,7 @@ class extensions:
 
 
 if __name__ == "__main__":
+    homes = binary_casas.get_all_homes()
+    #example
+    print(homes[0].train)
     exit()
