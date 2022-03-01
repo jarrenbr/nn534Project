@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-
 import pandas as pd
 
 import common
-
 from names import binaryCasas
 
 @dataclass(frozen=True)
