@@ -51,7 +51,8 @@ class binary_casas:
     # h1Home = _create_home_data(_home1Name)
     @staticmethod
     def _get_home(fileNames:common.ml_data):
-        return fileNames.transform(pd.read_csv)
+        fileNames.transform(pd.read_csv)
+        return fileNames
 
     @staticmethod
     def get_home1():
