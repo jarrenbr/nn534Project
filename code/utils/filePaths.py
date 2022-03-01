@@ -16,7 +16,8 @@ class folder:
 @dataclass(frozen=True)
 class binary_casas:
     """
-    A data class of filenames with methods to return ml_data objects of pd.DataFrames given those filenames
+    A data class of filenames for the binary Casas dataset
+    with methods to return ml_data objects of pd.DataFrames given those filenames
     """
     _fileExtension = ".csv"
     _trainSuffix = "Train" + _fileExtension
