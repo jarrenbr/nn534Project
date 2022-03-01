@@ -66,6 +66,10 @@ Indentation: tab
 ###Use asserts
 If an assumption is made while coding, use an assert.
 
+
+###Testing
+Developing unit (single function or idea) or integrated (aggregation) tests would be great.
+
 ### Typing
 Type hint and check as needed for clarity
 ```python
@@ -94,7 +98,7 @@ Anything except string casting + concatting
 output = "lorem " + str(1) + " senpai"
 
 #good
-output = "lorem %d senpai" %(1,)
+output = "lorem %d senpai" % (1,)
 output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 ```
 
@@ -105,4 +109,3 @@ output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 | Scoped vars                    | camelCase                   |
 | Global vars                    | UPPER_SNAKE_CASE            |
 | Private vars/functions/classes | _(corresponding convention) |
-
