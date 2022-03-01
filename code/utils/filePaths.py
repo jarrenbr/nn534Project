@@ -15,6 +15,9 @@ class folder:
 
 @dataclass(frozen=True)
 class binary_casas:
+    """
+    A data class of filenames with methods to return ml_data objects of pd.DataFrames given those filenames
+    """
     _fileExtension = ".csv"
     _trainSuffix = "Train" + _fileExtension
     _testSuffix = "Test" + _fileExtension
@@ -46,14 +49,8 @@ class binary_casas:
 
     allHomes = [h1Home, h2Home, h3Home]
 
-    # h1Home = _create_home_data(_home1Name)
-
     @staticmethod
     def _get_home(fileNames:common.ml_data):
-        """
-        :param fileNames: ml_data object of filenames
-        :return: ml_data object of pd.DataFrame's given the filenames
-        """
         fileNames.transform(pd.read_csv)
         return fileNames
 
