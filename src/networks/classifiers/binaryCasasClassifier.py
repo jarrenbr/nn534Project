@@ -30,7 +30,7 @@ def run_classifiers(data:common.ml_data):
     model = basic_cnn()
     model.compile(loss = keras.losses.CategoricalCrossentropy(), optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     # print(model.summary())
-    history = model.fit(data.train.gen, epochs=1, validation_data=data.test.gen)
+    history = model.fit(data.train.gen, epochs=5, validation_data=data.test.gen)
     return model, history
 
 if __name__ == "__main__":

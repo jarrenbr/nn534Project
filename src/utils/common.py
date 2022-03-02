@@ -126,23 +126,27 @@ class windows_generator:
         self.gen = self._gen_init()
         return
 
+    def xy_split(self):
+        x, y = np.split(
+            self.data[self.currIndex],
+            [self.xyPivot],
+            axis=-1
+        )
+        return x, y[:,-1]
+
+    def no_split(self):
+        return self.data[self.currIndex]
+
     def _gen_init(self):
-        #for classifiers
+        #split for classifiers and don't for GANs
+        yieldFunc = self.xy_split if self.splitXy else self.no_split
         if self.splitXy:
             assert self.xyPivot is not None
-            while self.currIndex[-1,-1] < self.data.shape[0]:
-                x, y = np.split(
-                    self.data[self.currIndex],
-                    [self.xyPivot],
-                    axis=-1
-                )
-                yield x, y[:,-1] #choose final activity as label
-                self.currIndex += self.stride
-        #for gans
-        else:
-            while self.currIndex[-1, -1] < self.data.shape[0]:
-                yield self.data[self.currIndex]
-                self.currIndex += self.stride
+        while True:
+            yield yieldFunc()
+            self.currIndex += self.stride
+            if self.currIndex[-1, -1] >= self.data.shape[0]:
+                self.reset_generator()
 
-        self.reset_generator()
+        # self.reset_generator()
 
