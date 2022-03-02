@@ -108,10 +108,9 @@ class windows_generator:
     """
     def __init__(self, data:np.ndarray, batchSize, length, stride=None, xyPivot=None, splitXy=False):
         self.data = data
-        self.stride = length if not stride else stride
+        self.stride = length if stride is None else stride
         self.batchSize = batchSize
         self.length = length
-        # self.nIters = int(data.shape[0] / batchSize) - length
 
         self.xyPivot=xyPivot
         self.splitXy = splitXy
