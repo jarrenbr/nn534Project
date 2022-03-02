@@ -17,7 +17,7 @@ pip3 install -r requirement.txt
   - [x] Versioning (Max, Jarren)
   - [x] Guideline standards (Jarren, Max)
   - [x] Create file directories (Jarren, Max)
-- [x] Preprocessing
+- [x] Preprocessing (Jarren)
   - [x] File-saved preprocessing (Jarren)
   - [x] Run-time preprocessing (Jarren)
     - [x] Tensorflow Window Slider (Jarren)
