@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 import pandas as pd
 
-import common
-from names import binaryCasas
-import home
+from utils import common
 
 @dataclass(frozen=True)
 class folder:
@@ -53,8 +51,8 @@ class binary_casas:
 
     @staticmethod
     def _get_home(fileNames:common.ml_data):
-        fileNames.apply(pd.read_csv)
-        return fileNames
+        dfs = fileNames.apply(pd.read_csv)
+        return dfs
 
     @staticmethod
     def get_home1():

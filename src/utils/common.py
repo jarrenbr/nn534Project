@@ -1,4 +1,4 @@
-import globalVars as gv
+from utils import globalVars
 
 def tf_gpu_cap(percent=.9):
     import tensorflow as tf
