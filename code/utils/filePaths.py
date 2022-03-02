@@ -3,6 +3,7 @@ import pandas as pd
 
 import common
 from names import binaryCasas
+import home
 
 @dataclass(frozen=True)
 class folder:
