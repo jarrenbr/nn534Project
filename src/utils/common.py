@@ -106,13 +106,12 @@ class windows_generator:
     """
     Call next(self.gen) to slide the window.
     """
-    #todo: implement stride
     def __init__(self, data:np.ndarray, batchSize, length, stride=None, xyPivot=None, splitXy=False):
         self.data = data
-        # self.stride = np.ceil(length/2).astype(int) if not stride else stride
+        self.stride = length if not stride else stride
         self.batchSize = batchSize
         self.length = length
-        self.nIters = int(data.shape[0] / batchSize) - length
+        # self.nIters = int(data.shape[0] / batchSize) - length
 
         self.xyPivot=xyPivot
         self.splitXy = splitXy
@@ -132,19 +131,19 @@ class windows_generator:
         #for classifiers
         if self.splitXy:
             assert self.xyPivot is not None
-            for i in range(self.nIters):
+            while self.currIndex[-1,-1] < self.data.shape[0]:
                 x, y = np.split(
                     self.data[self.currIndex],
                     [self.xyPivot],
                     axis=-1
                 )
                 yield x, y[:,-1] #choose final activity as label
-                self.currIndex += 1
+                self.currIndex += self.stride
         #for gans
         else:
-            for i in range(self.nIters):
+            while self.currIndex[-1, -1] < self.data.shape[0]:
                 yield self.data[self.currIndex]
-                self.currIndex += 1
+                self.currIndex += self.stride
 
         self.reset_generator()
 
