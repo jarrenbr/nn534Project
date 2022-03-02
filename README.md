@@ -111,3 +111,8 @@ output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 | Private vars/functions/classes | _(corresponding convention) |
 | Keras model names | Title_Snake_Case |
 
+##How Do I???
+The windows generator class is in utils.common.py.
+
+See networks.classifiers.binaryCasasClassifier.py for an example of getting the 
+data and training a model.
