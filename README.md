@@ -12,16 +12,16 @@ pip3 install -r requirement.txt
 ## Task List
 - [x] Proposal (Jocelyn, Jarren, Max) 
   - [x] Citation update in Latex Proposal
-- [ ] Initialize project (Max, Jarren)
+- [x] Initialize project (Max, Jarren)
   - [x] Python dependencies (Jarren)
   - [x] Versioning (Max, Jarren)
   - [x] Guideline standards (Jarren, Max)
-  - [ ] Create file directories (Jarren, Max)
-- [ ] Preprocessing
-  - [ ] File-saved preprocessing (Jarren)
-  - [ ] Run-time preprocessing
-    - [ ] Tensorflow Window Slider
-  - [ ] Labeling (label to ordinal tracking)
+  - [x] Create file directories (Jarren, Max)
+- [x] Preprocessing
+  - [x] File-saved preprocessing (Jarren)
+  - [x] Run-time preprocessing (Jarren)
+    - [x] Tensorflow Window Slider (Jarren)
+  - [x] Labeling (label to ordinal tracking) (Jarren)
 - [ ] Core
   - [ ] Base GAN (Jocelyn)
     - [ ] GAN class
@@ -33,8 +33,10 @@ pip3 install -r requirement.txt
     - [ ] Add state
   - [ ] High-level GAN APIs (Jarren, Jocelyn)
 - [ ] Post-processing (i.e. unnormalizing synthetic data)
-- [ ] Analyses 
+- [ ] Analyses
   - [ ] TSTR (Train on Synthetic, Test on Real) (Max)
+    - [x] Create simple CNN classifier (Jarren) 
+    - [ ] Create better classifiers
     - [ ] Port over ML code
     - [ ] TRTR until synthetic available
   - [ ] Granger Causality
