@@ -1,5 +1,5 @@
 # Cpts 534 Project
-GAN on [CASAS](https://duckduckgo.com).
+GAN on [CASAS](http://casas.wsu.edu/datasets/).
 
 ## Setup
 Python version: 3.9
