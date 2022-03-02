@@ -19,6 +19,7 @@ pip3 install -r requirement.txt
   - [x] Create file directories (Jarren, Max)
 - [x] Preprocessing (Jarren)
   - [x] File-saved preprocessing (Jarren)
+    - [x] Datetime to Unix time, one-hot encoding, binary label mapping, etc
   - [x] Run-time preprocessing (Jarren)
     - [x] Time differentials (Jarren)
     - [x] Normalization (Jarren)
