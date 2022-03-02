@@ -64,19 +64,20 @@ pip3 install -r requirement.txt
   - [ ] Violin plot of time differentials
   - [ ] Distribution analysis
 
-## Standards
+# Standards
 
-### Indentation
+## Indentation
 Indentation: tab
 
-###Use asserts
+##Use asserts
+
 If an assumption is made while coding, use an assert.
 
 
-###Testing
+##Testing
 Developing unit (single function or idea) or integrated (aggregation) tests would be great.
 
-### Typing
+## Typing
 Type hint and check as needed for clarity
 ```python
 #too much
@@ -97,7 +98,7 @@ def preprocess(df:pd.DataFrame, scaler) -> np.ndarray:
     return df.to_numpy() * scaler
 ```
 
-### Strings
+## Strings
 Anything except string casting + concatting
 ```python
 #bad
@@ -108,7 +109,7 @@ output = "lorem %d senpai" % (1,)
 output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 ```
 
-### Naming convention
+## Naming convention
 | Type                           | Case                        |
 |--------------------------------|-----------------------------|
 | Functions/classes              | snake_case                  |
