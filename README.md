@@ -20,7 +20,10 @@ pip3 install -r requirement.txt
 - [x] Preprocessing (Jarren)
   - [x] File-saved preprocessing (Jarren)
   - [x] Run-time preprocessing (Jarren)
+    - [x] Time differentials (Jarren)
+    - [x] Normalization (Jarren)
     - [x] Tensorflow Window Slider (Jarren)
+      - [x] Flexibility for GAN or classifier feeds (Jarren)
   - [x] Labeling (label to ordinal tracking) (Jarren)
 - [ ] Core
   - [ ] Base GAN (Jocelyn)
