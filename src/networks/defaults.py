@@ -1,15 +1,22 @@
 from tensorflow import keras
 from dataclasses import dataclass
 
+from utils import globalVars as gv
+
 #Data shape
 NOISE_DIM = 128
-BATCH_SIZE = 128
+BATCH_SIZE = 64
 
 #Data values
 MIN_VAL = 0.
 MAX_VAL = 1.
 MIN_MAX_RNG = (MIN_VAL, MAX_VAL)
 
+#Training
+STEPS_PER_EPOCH = 2 if gv.DEBUG else 1000
+VALIDATION_STEPS = 2 if gv.DEBUG else 150
+
+KERAS_FIT_KWARGS = {"steps_per_epoch" : STEPS_PER_EPOCH, "validations_steps" : VALIDATION_STEPS}
 
 #Hyper-parameters
 DROPOUT_PORTION = 0.2

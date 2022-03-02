@@ -106,24 +106,22 @@ class windows_generator:
     """
     Call next(self.gen) to slide the window.
     """
-    def __init__(self, data:np.ndarray, batchSize, length, stride=None, xyPivot=None, splitXy=False):
+    def __init__(self, data:np.ndarray, batchSize, length, stride=None, xyPivot=None):
         self.data = data
         self.stride = length if stride is None else stride
         self.batchSize = batchSize
         self.length = length
-
         self.xyPivot=xyPivot
-        self.splitXy = splitXy
 
-        self.reset_generator()
+        self.gen = self._gen_init()
+        self.reset_index()
 
-    def reset_generator(self):
+    def reset_index(self):
         initPositions = np.linspace(0, self.data.shape[0], num=self.batchSize, dtype=int, endpoint=False).reshape((-1,1))
         initPositions = np.repeat(initPositions, self.length, axis=1)
         rng = np.arange(initPositions.shape[-1]).reshape((-1,1))
         self.currIndex = np.repeat(rng, initPositions.shape[0], axis=1).T
         self.currIndex += initPositions
-        self.gen = self._gen_init()
         return
 
     def xy_split(self):
@@ -139,14 +137,13 @@ class windows_generator:
 
     def _gen_init(self):
         #split for classifiers and don't for GANs
-        yieldFunc = self.xy_split if self.splitXy else self.no_split
-        if self.splitXy:
-            assert self.xyPivot is not None
+        yieldFunc = self.no_split if self.xyPivot is None else self.xy_split
+
         while True:
             yield yieldFunc()
             self.currIndex += self.stride
             if self.currIndex[-1, -1] >= self.data.shape[0]:
-                self.reset_generator()
+                self.reset_index()
 
         # self.reset_generator()
 

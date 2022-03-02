@@ -30,12 +30,13 @@ def run_classifiers(data:common.ml_data):
     model = basic_cnn()
     model.compile(loss = keras.losses.CategoricalCrossentropy(), optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     # print(model.summary())
-    history = model.fit(data.train.gen, epochs=5, validation_data=data.test.gen)
+    history = model.fit(data.train.gen, epochs=5, steps_per_epoch = defaults.STEPS_PER_EPOCH,
+                        validation_data=data.test.gen, validation_steps=defaults.VALIDATION_STEPS)
     return model, history
 
 if __name__ == "__main__":
     allHomes = bcData.get_all_homes_as_window_gen(
-        batchSize=BATCH_SIZE, nTimeSteps=N_TIME_STEPS, splitXy=True, firstN=gv.DATA_AMT
+        batchSize=BATCH_SIZE, nTimeSteps=N_TIME_STEPS, xyPivot=bcNames.pivots.activities.start, firstN=gv.DATA_AMT
     )
     run_classifiers(allHomes[0].data)
 

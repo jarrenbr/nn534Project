@@ -47,23 +47,23 @@ def get_home3(firstN=None):
 def get_all_homes(firstN=None):
     return [get_home1(firstN), get_home2(firstN), get_home3(firstN)]
 
-def df_to_window_gen(df:pd.DataFrame, batchSize, nTimeSteps, stride=None, splitXy=False) -> common.windows_generator:
+def df_to_window_gen(df:pd.DataFrame, batchSize, nTimeSteps, stride=None, xyPivot=None) -> common.windows_generator:
     assert (df.columns == bcNames.correctOrder).all()
     return common.windows_generator(
         df.to_numpy(), length=nTimeSteps, batchSize=batchSize, stride=stride,
-        xyPivot=bcNames.pivots.activities.start, splitXy=splitXy
+        xyPivot=bcNames.pivots.activities.start
     )
 
 
 
-def get_all_homes_as_window_gen(batchSize, nTimeSteps, stride=None, firstN = None, splitXy=False):
+def get_all_homes_as_window_gen(batchSize, nTimeSteps, stride=None, firstN = None, xyPivot=None):
     """
     :param splitXy: do true for classifiers and false for GANs
     """
     homes = get_all_homes(firstN)
     for i in range(len(homes)):
-        homes[i].data.train = df_to_window_gen(homes[i].data.train, batchSize, nTimeSteps, stride, splitXy=splitXy)
-        homes[i].data.test = df_to_window_gen(homes[i].data.test, batchSize, nTimeSteps, stride, splitXy=splitXy)
+        homes[i].data.train = df_to_window_gen(homes[i].data.train, batchSize, nTimeSteps, stride, xyPivot=xyPivot)
+        homes[i].data.test = df_to_window_gen(homes[i].data.test, batchSize, nTimeSteps, stride, xyPivot=xyPivot)
 
     return homes
 
