@@ -1,4 +1,5 @@
-from utils import globalVars
+from utils import globalVars as gv
+import numpy as np
 
 def tf_gpu_cap(percent=.9):
     import tensorflow as tf
@@ -12,7 +13,7 @@ class keras_params:
         self.epochs = 1 if debug else runEpochs
         self.kpKwArgs = {"verbose": self.verbose, "epochs": self.epochs}
 
-def enable_tf_debug(eager: object = True, debugMode: object = True) -> object:
+def enable_tf_debug(eager = True, debugMode = True):
     import tensorflow as tf
     tf.config.run_functions_eagerly(eager)
     if debugMode: tf.data.experimental.enable_debug_mode()
@@ -100,3 +101,50 @@ def enable_gpu():
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+class windows_generator:
+    """
+    Call next(self.gen) to slide the window.
+    """
+    #todo: implement stride
+    def __init__(self, data:np.ndarray, batchSize, length, stride=None, xyPivot=None, splitXy=False):
+        self.data = data
+        # self.stride = np.ceil(length/2).astype(int) if not stride else stride
+        self.batchSize = batchSize
+        self.length = length
+        self.nIters = int(data.shape[0] / batchSize) - length
+
+        self.xyPivot=xyPivot
+        self.splitXy = splitXy
+
+        self.reset_generator()
+
+    def reset_generator(self):
+        initPositions = np.linspace(0, self.data.shape[0], num=self.batchSize, dtype=int, endpoint=False).reshape((-1,1))
+        initPositions = np.repeat(initPositions, self.length, axis=1)
+        rng = np.arange(initPositions.shape[-1]).reshape((-1,1))
+        self.currIndex = np.repeat(rng, initPositions.shape[0], axis=1).T
+        self.currIndex += initPositions
+        self.gen = self._gen_init()
+        return
+
+    def _gen_init(self):
+        #for classifiers
+        if self.splitXy:
+            assert self.xyPivot is not None
+            for i in range(self.nIters):
+                x, y = np.split(
+                    self.data[self.currIndex],
+                    [self.xyPivot],
+                    axis=-1
+                )
+                yield x, y[:,-1] #choose final activity as label
+                self.currIndex += 1
+        #for gans
+        else:
+            for i in range(self.nIters):
+                yield self.data[self.currIndex]
+                self.currIndex += 1
+
+        self.reset_generator()
+

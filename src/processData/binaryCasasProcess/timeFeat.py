@@ -1,12 +1,13 @@
+import pandas as pd
 
+
+def time_difs(df:pd.DataFrame, timeCol):
+    df[timeCol] = df[timeCol].diff()
+    df.drop(0, axis=0, inplace=True)
+    return df
 
 _timeExp = .3
 # _timeExp = .09
-
-def unnorm_time(arr, oldMax):
-    arr = ((arr+1)/2)**(1/_timeExp) * oldMax
-    assert (arr >= 0).all()
-    return arr
 
 def norm_time(arr):
     arr -= arr.min()
@@ -17,5 +18,12 @@ def norm_time(arr):
     assert not (arr > 1).any()
     return arr, arrMax
 
-def norm_time(arr):
-    pass
+
+
+def unnorm_time(arr, oldMax):
+    arr = ((arr+1)/2)**(1/_timeExp) * oldMax
+    assert (arr >= 0).all()
+    return arr
+
+
+#todo: add time since midnight and weekday?

@@ -109,3 +109,5 @@ output = "Pi: {pi:.5f}".format(pi=3.1415965358979)
 | Scoped vars                    | camelCase                   |
 | Global vars                    | UPPER_SNAKE_CASE            |
 | Private vars/functions/classes | _(corresponding convention) |
+| Keras model names | Title_Snake_Case |
+

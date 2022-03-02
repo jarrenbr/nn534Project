@@ -26,9 +26,6 @@ allActivities = ['Bathing', 'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Ho
 sensColToOrd = { val : i for i, val in enumerate(allSensors)}
 
 
-week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-timeMidn = "TimeFromMid"
-
 @dataclass(frozen=True)
 class rawLabels:
     time = "Time"
@@ -40,12 +37,11 @@ class rawLabels:
 rl = rawLabels
 
 
-features = [rl.time, rl.signal] + allSensors + allActivities
-conditionals = [timeMidn] + week
-conditionalSize = len(conditionals)
-allBinaryColumns = [rl.signal] + allSensors + allActivities + week
+features = [rl.time, rl.signal] + allSensors
+labels = allActivities
+allBinaryColumns = [rl.signal] + allSensors + allActivities
 
-correctOrder = features + conditionals
+correctOrder = features + labels
 
 class start_stop:
     def __init__(self, start, length):
@@ -60,10 +56,7 @@ class pivots:
     activities = start_stop(sensors.stop, len(allActivities))
     features = start_stop(0, activities.stop)
 
-    timeLabels = start_stop(activities.stop, len(conditionals))
-    weekdays = start_stop(timeLabels.start, 1)
-
-colOrder = [rl.time, rl.signal] + allSensors + allActivities + conditionals
+colOrder = correctOrder
 ordinalColDict = {i:c for i, c in enumerate(colOrder)}
 colOrdinalDict = {c:i for i, c in enumerate(colOrder)}
 
