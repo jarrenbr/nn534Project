@@ -10,6 +10,7 @@ from utils import common, globalVars as gv
 
 BATCH_SIZE = 64
 N_TIME_STEPS = 32
+EPOCHS = 2 if gv.DEBUG else 10
 
 def basic_cnn() -> keras.models.Model:
     inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features))) #should be 48 channels
@@ -30,7 +31,7 @@ def run_classifiers(data:common.ml_data):
     model = basic_cnn()
     model.compile(loss = keras.losses.CategoricalCrossentropy(), optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     # print(model.summary())
-    history = model.fit(data.train.gen, epochs=5, steps_per_epoch = defaults.STEPS_PER_EPOCH,
+    history = model.fit(data.train.gen, epochs=EPOCHS, steps_per_epoch = defaults.STEPS_PER_EPOCH,
                         validation_data=data.test.gen, validation_steps=defaults.VALIDATION_STEPS)
     return model, history
 
