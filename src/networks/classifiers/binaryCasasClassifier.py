@@ -10,7 +10,7 @@ from utils import common, globalVars as gv
 
 BATCH_SIZE = 64
 N_TIME_STEPS = 32
-EPOCHS = 2 if gv.DEBUG else 10
+EPOCHS = 2 if gv.DEBUG else 6
 
 def basic_cnn() -> keras.models.Model:
     inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features))) #should be 48 channels

@@ -114,15 +114,21 @@ class windows_generator:
         self.xyPivot=xyPivot
 
         self.gen = self._gen_init()
-        self.reset_index()
+        self.init_index()
 
-    def reset_index(self):
+    def init_index(self):
         initPositions = np.linspace(0, self.data.shape[0], num=self.batchSize, dtype=int, endpoint=False).reshape((-1,1))
         initPositions = np.repeat(initPositions, self.length, axis=1)
         rng = np.arange(initPositions.shape[-1]).reshape((-1,1))
         self.currIndex = np.repeat(rng, initPositions.shape[0], axis=1).T
         self.currIndex += initPositions
         return
+
+    def reset_index(self, rndShift=True):
+        self.init_index()
+        if rndShift:
+            shift = np.random.randint(0, self.length)
+            self.currIndex += shift
 
     def xy_split(self):
         x, y = np.split(
