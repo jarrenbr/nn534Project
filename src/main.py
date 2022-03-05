@@ -12,8 +12,6 @@ def execute(args):
     for arg in args:
         print("Executing: " + arg)
         
-    
-    
 
 if __name__ == "__main__":
     main(sys.argv)
