@@ -43,6 +43,7 @@ allBinaryColumns = [rl.signal] + allSensors + allActivities
 
 correctOrder = features + labels
 ganFeatures = correctOrder
+nGanFeatures = len(ganFeatures)
 
 class start_stop:
     def __init__(self, start, length):
