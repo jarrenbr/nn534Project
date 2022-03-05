@@ -27,3 +27,19 @@ def conv_block(
     if use_dropout:
         x = l.Dropout(drop_value)(x)
     return x
+
+def trans_conv_block(
+    x,
+    filters,
+    activation,
+    kernel_size=3,
+    strides=2,
+    padding="same",
+    use_bias=True,
+    use_bn=False,
+    use_dropout=False,
+    drop_value=defaults.DROPOUT_PORTION,
+):
+
+
+    return x
