@@ -23,6 +23,7 @@ def basic_cnn() -> keras.models.Model:
     model = keras.models.Model(inputLayer, x, name="Basic_CNN_Classifier")
     return model
 
+#Nathan uses temporal CNNs
 
 def multi_head_cnn():
     pass
