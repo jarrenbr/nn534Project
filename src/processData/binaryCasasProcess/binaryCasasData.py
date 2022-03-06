@@ -51,7 +51,7 @@ def df_to_window_gen(df:pd.DataFrame, batchSize, nTimeSteps, stride=None, xyPivo
     assert (df.columns == bcNames.correctOrder).all()
     return common.windows_generator(
         df.to_numpy(), length=nTimeSteps, batchSize=batchSize, stride=stride,
-        xyPivot=bcNames.pivots.activities.start
+        xyPivot=xyPivot
     )
 
 

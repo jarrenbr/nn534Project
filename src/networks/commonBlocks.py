@@ -11,9 +11,15 @@ from tensorflow.keras import layers as l
 from networks import defaults
 
 class conv_args:
-    def __init__(self, nFilters, kernelSize):
+    def __init__(self, nFilters, kernelSize, strides=2, padding="valid", useBias=True):
         self.nFilters = nFilters
         self.kernelSize = kernelSize
+        self.strides = strides
+        self.padding = padding
+        self.useBias = useBias
+
+        self.kwargs = {"filters": self.nFilters, "kernel_size" : self.kernelSize,
+                       "strides": strides, "padding" : self.padding, "use_bias" : self.useBias}
 
 
 def block(
