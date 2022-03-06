@@ -38,8 +38,8 @@ def run_classifiers(data:common.ml_data):
     return model, history
 
 if __name__ == "__main__":
-    allHomes = bcData.get_all_homes_as_window_gen(
-        batchSize=BATCH_SIZE, nTimeSteps=N_TIME_STEPS,
+    allHomes = bcData.get_all_homes_as_xy_split_gen(
+        batchSize=BATCH_SIZE, nTimesteps=N_TIME_STEPS,
         xyPivot=bcNames.pivots.activities.start, firstN=gv.DATA_AMT
     )
     run_classifiers(allHomes[0].data)

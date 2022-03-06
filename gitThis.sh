@@ -1,10 +1,10 @@
 #!/bin/bash
 
-find . -type f -size +99M
+#find . -type f -size +99M
 
-echo "Proceed with the above files above 99 Megabytes? Y/n"
+#echo "Proceed with the above files above 99 Megabytes? Y/n"
 
-read proceed
+#read proceed
 
 if [ "$proceed" == "n" ] || [ "$proceed" == "N" ]
 then
