@@ -4,6 +4,11 @@ from tensorflow.keras import layers as l
 
 from networks import defaults
 
+class conv_args:
+    def __init__(self, nFilters, kernelSize):
+        self.nFilters = nFilters
+        self.kernelSize = kernelSize
+
 
 def block(
     x,

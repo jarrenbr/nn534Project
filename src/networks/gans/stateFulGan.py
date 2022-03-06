@@ -24,8 +24,20 @@ def get_generator() -> keras.models.Model:
     inputLayer = keras.Input(
         shape=(1, NOISE_DIM)
     )
-    x = layers.Conv1DTranspose(filters=96, kernel_size=2, use_bias=False)(inputLayer)
-    x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
+    args = [
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        ]
+    for arg in args:
+        x = layers.Conv1DTranspose(
+            filters=arg.nFilters, kernel_size=arg.kernelSize, use_bias=False
+        )(inputLayer)
+        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
+
+    model = keras.models.Model(inputLayer, x, "LSTM_Generator")
 
 
 if __name__ == "__main__":
