@@ -1,8 +1,6 @@
 import numpy as np
-import abc
-from abc import ABC
 
-class windows_generator(ABC):
+class windows_generator:
     """
     Call next(self.gen) to slide the window.
     """
