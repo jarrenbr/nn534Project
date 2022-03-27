@@ -38,15 +38,15 @@ def get_generator() -> keras.models.Model:
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
 
     model = keras.models.Model(inputLayer, x, "LSTM_Generator")
-    model.compile(loss = keras.losses.CategoricalCrossentropy(),
-                  optimizer = defaults.optimizer(), metrics = defaults.METRICS)
-
+    # model.compile(loss = keras.losses.CategoricalCrossentropy(),
+    #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
-def get_discriminator() -> keras.models.Model:
+
+def get_critic() -> keras.models.Model:
     #goal: 32 X 48
     inputLayer = keras.Input(
-        shape=(N_TIME_STEPS, )
+        shape=(N_TIME_STEPS, bcNames.nGanFeatures)
     )
     args = [
         cBlocks.conv_args(nFilters=96, kernelSize=3),
@@ -59,19 +59,25 @@ def get_discriminator() -> keras.models.Model:
         x = layers.Conv1D(**arg.kwargs)(inputLayer)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
 
-    model = keras.models.Model(inputLayer, x, "LSTM_Generator")
-    model.compile(loss = keras.losses.CategoricalCrossentropy(),
-                  optimizer = defaults.optimizer(), metrics = defaults.METRICS)
-
+    model = keras.models.Model(inputLayer, x, "Critic")
+    # model.compile(loss = keras.losses.CategoricalCrossentropy(),
+    #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
 def get_data():
     return bcData.get_all_homes_as_xy_combined_gen(
         CRITIC_BATCH_SIZE, N_TIME_STEPS, firstN=gv.DATA_AMT)
 
-if __name__ == "__main__":
+def run_gan():
     gen = get_generator()
+    critic = get_critic()
     data = get_data()
-    gan = wgan.wgan()
+    gan = wgan.wgan(critic, gen, defaults.NOISE_DIM)
+    gan.compile()
+    gan.fit(data[0].data.train.gen)
+    return gan
+
+if __name__ == "__main__":
+    gan = run_gan()
 
     exit()

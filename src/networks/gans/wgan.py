@@ -3,6 +3,21 @@ from tensorflow import keras
 import matplotlib.pyplot as plt
 
 import genApi
+from networks import defaults
+
+
+# Define the loss functions for the critic,
+# which should be (fake_loss - real_loss).
+# We will add the gradient penalty later to this loss function.
+def critic_loss(real_img, fake_img):
+    real_loss = tf.reduce_mean(real_img)
+    fake_loss = tf.reduce_mean(fake_img)
+    return fake_loss - real_loss
+
+
+# Define the loss functions for the generator.
+def generator_loss(fake_img):
+    return -tf.reduce_mean(fake_img)
 
 class wgan(keras.Model):
     criticLossKey = "cLoss"
@@ -29,7 +44,8 @@ class wgan(keras.Model):
         self.generator.save(self.generator.name)
         self.critic.save(self.critic.name)
 
-    def compile(self, c_optimizer, g_optimizer, d_loss_fn, g_loss_fn):
+    def compile(self, c_optimizer=defaults.optimizer(), g_optimizer=defaults.optimizer(),
+                d_loss_fn=critic_loss, g_loss_fn=generator_loss):
         super(wgan, self).compile()
         self.c_optimizer = c_optimizer
         self.g_optimizer = g_optimizer
@@ -124,7 +140,7 @@ class wgan(keras.Model):
         plt.plot(self.history.history[wgan.criticLossKey])
         plt.plot(self.history.history[wgan.genLossKey])
         plt.hlines(0, 0, len(self.history.history[wgan.criticLossKey]), 'k', 'dashed')
-        plt.title("wgan Losses")
+        plt.title("WGAN Losses")
         plt.ylabel("Loss")
         plt.xlabel("Epoch")
         plt.legend([wgan.criticLossKey, wgan.genLossKey])
@@ -138,19 +154,6 @@ class wgan(keras.Model):
         self.critic.reset_states()
 
 
-
-# Define the loss functions for the critic,
-# which should be (fake_loss - real_loss).
-# We will add the gradient penalty later to this loss function.
-def critic_loss(real_img, fake_img):
-    real_loss = tf.reduce_mean(real_img)
-    fake_loss = tf.reduce_mean(fake_img)
-    return fake_loss - real_loss
-
-
-# Define the loss functions for the generator.
-def generator_loss(fake_img):
-    return -tf.reduce_mean(fake_img)
 
 if __name__ == "__main__":
     pass
