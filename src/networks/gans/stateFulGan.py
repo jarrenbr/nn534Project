@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -74,7 +75,10 @@ def run_gan():
     data = get_data()
     gan = wgan.wgan(critic, gen, defaults.NOISE_DIM)
     gan.compile()
-    gan.fit(data[0].data.train.gen)
+    # gan.fit(data[0].data.train.gen)
+    windows = data[0].data.train.data
+    windows = np.reshape(windows[:1024], (-1, N_TIME_STEPS, bcNames.nGanFeatures))
+    gan.fit(windows)
     return gan
 
 if __name__ == "__main__":

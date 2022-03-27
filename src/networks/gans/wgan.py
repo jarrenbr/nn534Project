@@ -154,6 +154,6 @@ class wgan(keras.Model):
         self.critic.reset_states()
 
 
-
 if __name__ == "__main__":
+    gan = wgan()
     pass

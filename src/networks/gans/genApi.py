@@ -8,7 +8,10 @@ def get_gen_input(shape=(defaults.BATCH_SIZE, defaults.NOISE_DIM), minMax = defa
 
 def gen_input(shape=(defaults.BATCH_SIZE, defaults.NOISE_DIM), minMax = defaults.MIN_MAX_RNG):
     while True:
-        yield get_gen_input(shape=(defaults.BATCH_SIZE, defaults.NOISE_DIM), minMax = defaults.MIN_MAX_RNG)
+        yield get_gen_input(shape=shape, minMax = minMax)
 
 def get_gen_out(gen, noiseDim=defaults.NOISE_DIM, batchSize=defaults.BATCH_SIZE, training=False):
-    return gen(get_gen_input((batchSize, noiseDim)), training=training)
+    return gen(
+        get_gen_input((batchSize, noiseDim)),
+        training=training
+    )
