@@ -1,17 +1,25 @@
-import pandas as pd
-from keras.layers import BatchNormalization, Dense, Reshape,  Flatten, Conv1D, Concatenate
+from keras.layers import BatchNormalization, Dense, Reshape, Flatten, Conv1D, Concatenate
 from keras.layers import Conv2DTranspose, LeakyReLU, Dropout, Embedding, Activation
+from processData.binaryCasasProcess import binaryCasasData as bcData
 from sklearn.preprocessing import MinMaxScaler
-from names import binaryCasasNames as names
-from sklearn.impute import SimpleImputer
 from numpy.random import randn, randint
 from keras.models import Model, Input
+from utils import globalVars as gv
+import matplotlib.pyplot as plt
 from matplotlib import pyplot
+import einops as einops
 from numpy import zeros
 from numpy import ones
+import pandas as pd
 import numpy as np
 import tensorflow
-import keras
+import csv
+
+real_data_loss = []
+fake_data_loss = []
+real_data_acc = []
+fake_data_acc = []
+
 
 # define the standalone discriminator model
 def define_discriminator(in_shape=(384, 1), n_classes=4):
@@ -19,22 +27,25 @@ def define_discriminator(in_shape=(384, 1), n_classes=4):
     # init = RandomNormal(stddev=0.02)
     # image input
     in_image = Input(shape=in_shape)
-    # downsample to 14x14
+
+    # down sample to 14x14
     fe = Conv1D(16, 3, strides=2, padding='same')(in_image)
     fe = LeakyReLU(alpha=0.2)(fe)
     fe = Dropout(0.2)(fe)
+
     # normal
     fe = Conv1D(32, 3, strides=2, padding='same')(fe)
     fe = BatchNormalization()(fe)
     fe = LeakyReLU(alpha=0.2)(fe)
     fe = Dropout(0.2)(fe)
-    # downsample to 7x7
+
+    # down sample to 7x7
     fe = Conv1D(64, 3, strides=2, padding='same')(fe)
     fe = BatchNormalization()(fe)
     fe = LeakyReLU(alpha=0.2)(fe)
     fe = Dropout(0.2)(fe)
 
-    # downsample one more
+    # down sample one more
     fe = Conv1D(128, 3, strides=2, padding='same')(fe)
     fe = BatchNormalization()(fe)
     fe = LeakyReLU(alpha=0.2)(fe)
@@ -50,8 +61,11 @@ def define_discriminator(in_shape=(384, 1), n_classes=4):
     model = Model(in_image, [out1, out2])
     # compile model
     opt = tensorflow.keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-    model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt)
+    model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt, metrics=['accuracy'])
     model.summary()
+    # plot the model
+    tensorflow.keras.utils.plot_model(model, to_file='results/discriminator_plot.png', show_shapes=True,
+                                      show_layer_names=True)
     return model
 
 
@@ -82,29 +96,32 @@ def define_generator(latent_dim, n_classes=4):
     gen = Reshape((dim, 1, depth))(gen)
     # merge image gen and label input
     merge = Concatenate()([gen, li])  # gen=96,1,32 x li=96,1,1
-    # upsample to 192,1,16
+    # up sample to 192,1,16
     gen = Conv2DTranspose(16, 3, strides=(2, 1), padding='same')(merge)
     gen = BatchNormalization()(gen)
     gen = LeakyReLU(alpha=0.2)(gen)
 
-    # upsample to  384,1,8
+    # up sample to  384,1,8
     gen = Conv2DTranspose(8, 3, strides=(2, 1), padding='same')(gen)
     gen = BatchNormalization()(gen)
     gen = LeakyReLU(alpha=0.2)(gen)
 
-    # updamsple
+    # up sample
     # gen = Conv2DTranspose(48, (3,3), strides=(2,1), padding='same', kernel_initializer=init)(gen)
     # gen = BatchNormalization()(gen)
     # gen = Activation('relu')(gen)
     # 384 x 1 property image
     gen = Reshape((384, -1))(gen)
-    # upsample to 28x28
+    # up sample to 28x28
     # gen = Conv1DTranspose(1, 3, padding='same', kernel_initializer=init)(gen)
     gen = Conv1D(1, 3, strides=1, padding='same')(gen)
     out_layer = Activation('tanh')(gen)
     # define model
     model = Model([in_lat, in_label], out_layer)
     model.summary()
+    # plot the model
+    tensorflow.keras.utils.plot_model(model, to_file='results/generator_plot.png', show_shapes=True,
+                                      show_layer_names=True)
     return model
 
 
@@ -118,31 +135,38 @@ def define_gan(g_model, d_model):
     model = Model(g_model.input, gan_output)
     # compile model
     opt = tensorflow.keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-    model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt)
+    model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt, metrics=['accuracy'])
+    # summarise the model
+    model.summary()
+    # plot the model
+    tensorflow.keras.utils.plot_model(model, to_file='results/gan_plot.png', show_shapes=True, show_layer_names=True)
     return model
 
 
 # load images
 def load_real_samples():
-    df1 = pd.read_csv('data/binaryCasas/processed/b1Test.csv', skiprows=1)
+    df1 = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+    df2 = pd.read_csv('data/binaryCasas/processed/b2Train.csv', skiprows=1)
+    df3 = pd.read_csv('data/binaryCasas/processed/b3Train.csv', skiprows=1)
+    df = df1 + df2 + df3
     # load dataset
-    dataxy = df1.astype('int')
-    pd.DataFrame(dataxy)
+    data_xy = df.astype('float')
+    pd.DataFrame(data_xy)
     scaler = MinMaxScaler(copy=False)
     window = 384
-    n = ((np.where(np.any(dataxy, axis=1))[0][-1] + 1) // window) * window
-    xx = scaler.fit_transform(dataxy.iloc[:n, 0].values.reshape(-1, 1))
-    y_train = dataxy.iloc[:(n - window), 1].values.reshape(-1, 1)
+    n = ((np.where(np.any(data_xy, axis=1))[0][-1] + 1) // window) * window
+    xx = scaler.fit_transform(data_xy.iloc[:n, 0].values.reshape(-1, 1))
+    y_train = data_xy.iloc[:(n - window), 1].values.reshape(-1, 1)
 
     # make to matrix
     x_train = np.asarray([xx[i:i + window] for i in range(n - window)])
 
     X = x_train.copy()
-    trainy = y_train.copy()
+    train_y = y_train.copy()
 
     X = (X - 127.5) / 127.5
-    print(X.shape, trainy.shape)
-    return [X, trainy]
+    print(X.shape, train_y.shape)
+    return [X, train_y]
 
 
 # select real samples
@@ -180,6 +204,22 @@ def generate_fake_samples(generator, latent_dim, n_samples):
     return [images, labels_input], y
 
 
+# create and save a plot of generated images (reversed grayscale)
+def save_plot(examples, epoch, n=10):
+    # plot images
+    for i in range(n * n):
+        # define subplot
+        pyplot.subplot(n, n, 1 + i)
+        # turn off axis
+        pyplot.axis('off')
+        # plot raw pixel data
+        pyplot.imshow(examples[i, :, :, 0], cmap='gray_r')
+    # save plot to file
+    filename = 'generated_plot_e%03d.png' % (epoch + 1)
+    pyplot.savefig(filename)
+    pyplot.close()
+
+
 # generate samples and save as a plot and save the model
 def summarize_performance(step, g_model, latent_dim, n_samples=100):
     # prepare fake examples
@@ -195,11 +235,11 @@ def summarize_performance(step, g_model, latent_dim, n_samples=100):
         pyplot.axis('off')
         # plot raw pixel data
         pyplot.imshow(X[i, :], cmap='gray_r')
-        np.savetxt('%s.csv' % ("test_raw",) % (i, step), X[i, :], delimiter=',')
-        np.savetxt('%s.csv' % ("test_cat",) % (i, step), nmn_label[i], delimiter=',')
+        # np.savetxt('results/test_raw{}_{}.csv'.format(i, step), X[i], delimiter=',')
+        # np.savetxt('test_cat{}_{}.csv'.format(i, step), nmn_label[i], delimiter=',')
     # save plot to file
-    # np.savetxt('test_raw_nc%d.csv' % (step), X[:,:,0], delimiter=',')
-    # np.savetxt('test_cat_nc%d.csv' % (step), nmn_label[:],delimiter=',')
+    # np.savetxt('results/test_raw_nc{}.csv'.format(step), X[:,:,0], delimiter=',')
+    # np.savetxt('test_cat_nc{}.csv'.format(step), nmn_label[:],delimiter=',')
     filename1 = 'generated_plot_%04d.png' % (step + 1)
     pyplot.savefig(filename1)
     pyplot.close()
@@ -210,12 +250,12 @@ def summarize_performance(step, g_model, latent_dim, n_samples=100):
 
 
 # train the generator and discriminator
-def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=30, n_batch=64):
+def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=5, n_batch=64):
     # calculate the number of batches per training epoch
-    bat_per_epo = int(dataset[0].shape[0] / n_batch)
+    bat_per_epo = 10 # 50 # 100 # int(dataset[0].shape[0] / n_batch)
     print('batch per epoch: %d' % bat_per_epo)
     # calculate the number of training iterations
-    n_steps = bat_per_epo * n_epochs
+    n_steps = 100 # 500 # 1000 # bat_per_epo * n_epochs # 15
     print('number of steps: %d' % n_steps)
     # calculate the size of half a batch of samples
     half_batch = int(n_batch / 2)
@@ -224,22 +264,54 @@ def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=30, n_batch
         # get randomly selected 'real' samples
         [X_real, labels_real], y_real = generate_real_samples(dataset, half_batch)
         # update discriminator model weights
-        _, d_r1, d_r2 = d_model.train_on_batch(X_real, [y_real, labels_real])
+        _, d_r1, d_r2, _, _ = d_model.train_on_batch(X_real, [y_real, labels_real])
         # generate 'fake' examples
         [X_fake, labels_fake], y_fake = generate_fake_samples(g_model, latent_dim, half_batch)
+        # write_data to file
+        write_synthetic_to_csv(X_fake, i)
+        # evaluate the model
         # update discriminator model weights
-        _, d_f, d_f2 = d_model.train_on_batch(X_fake, [y_fake, labels_fake])
+        _, d_f, d_f2, _, _ = d_model.train_on_batch(X_fake, [y_fake, labels_fake])
+        # evaluate
+        loss_real, _, _, acc_real, _ = d_model.evaluate(X_real, labels_real, verbose=0)
+        loss_fake, _, _, acc_fake, _ = d_model.evaluate(X_fake, y_fake, verbose=0)
+        real_data_loss.append(loss_real)
+        real_data_acc.append(acc_real)
+        fake_data_loss.append(loss_fake)
+        fake_data_acc.append(acc_fake)
+
         # prepare points in latent space as input for the generator
         [z_input, z_labels] = generate_latent_points(latent_dim, n_batch)
         # create inverted labels for the fake samples
         y_gan = ones((n_batch, 1))
         # update the generator via the discriminator's error
-        _, g_1, g_2 = gan_model.train_on_batch([z_input, z_labels], [y_gan, z_labels])
+        loss, g_1, g_2, acc, _ = gan_model.train_on_batch([z_input, z_labels], [y_gan, z_labels])
         # summarize loss on this batch
         print('>%d, dr[%.3f,%.3f], df[%.3f,%.3f], g[%.3f,%.3f]' % (i + 1, d_r1, d_r2, d_f, d_f2, g_1, g_2))
         # evaluate the model performance every 'epoch'
-        if (i + 1) % (bat_per_epo * 1) == 0:
-            summarize_performance(i, g_model, latent_dim)
+        # if (i + 1) % bat_per_epo == 0:
+        #     summarize_performance(i, g_model, latent_dim)
+
+
+def write_synthetic_to_csv(x, i):
+    with open('results/synthetic_data{}.csv'.format(i), 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        header = ['Time', 'Signal', 'D021', 'D022', 'D023', 'D024', 'D025', 'D026', 'D027', 'D028', 'D029', 'D030',
+                  'D031', 'D032', 'M001', 'M002', 'M003', 'M004', 'M005', 'M006', 'M007', 'M008', 'M009', 'M010',
+                  'M011', 'M012', 'M013', 'M014', 'M015', 'M016', 'M017', 'M018', 'M019', 'M020', 'Bathing',
+                  'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Housekeeping', 'Leave_Home,Meal_Preparation',
+                  'Other_Activity', 'Personal_Hygiene', 'Relax', 'Sleeping_Not_in_Bed', 'Sleeping_in_Bed',
+                  'Take_Medicine', 'Work']
+        # start with (32, 384, 1) to (32*1, 384):
+        new_arr = einops.rearrange(x, 'h w i -> (h i) w')
+        arr = einops.rearrange(new_arr, 'h w -> w h')
+        y = [0 for x in range(384)]
+        # write the header
+        writer.writerow(header)
+        row = []
+        for w in range(len(y)):
+            row = arr[w].flatten() + [y[w]]
+            writer.writerow(row)
 
 
 def main():
@@ -255,6 +327,28 @@ def main():
     dataset = load_real_samples()
     # train model
     train(generator, discriminator, gan_model, dataset, latent_dim)
+
+    blah_a = [x for x in range(len(real_data_loss))]
+
+    plt.plot(blah_a, real_data_loss, label="real data loss", color='blue', )
+    plt.plot(blah_a, fake_data_loss, label="fake data loss", color='red', )
+    plt.xlabel('Iteration number')
+    plt.ylabel('Error Rate')
+    plt.legend()
+    plt.title('Graph that Shows Error by Iteration')
+    plt.savefig('results/Error_Comparison.png')
+    plt.show()
+    plt.clf()
+
+    plt.plot(blah_a, real_data_acc, label="real data acc", color='purple', )
+    plt.plot(blah_a, fake_data_acc, label="fake data acc", color='green', )
+    plt.xlabel('Iteration number')
+    plt.ylabel('Accuracy Rate')
+    plt.legend()
+    plt.title('Graph that Shows Accuracy by Iteration')
+    plt.savefig('results/Acc_Comparison.png')
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
