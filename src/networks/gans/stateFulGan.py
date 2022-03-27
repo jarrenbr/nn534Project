@@ -43,13 +43,35 @@ def get_generator() -> keras.models.Model:
 
     return model
 
+def get_discriminator() -> keras.models.Model:
+    #goal: 32 X 48
+    inputLayer = keras.Input(
+        shape=(N_TIME_STEPS, )
+    )
+    args = [
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        ]
+    for arg in args:
+        x = layers.Conv1D(**arg.kwargs)(inputLayer)
+        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
+
+    model = keras.models.Model(inputLayer, x, "LSTM_Generator")
+    model.compile(loss = keras.losses.CategoricalCrossentropy(),
+                  optimizer = defaults.optimizer(), metrics = defaults.METRICS)
+
+    return model
+
 def get_data():
-    return bcData.get_all_homes_as_window_gen(
+    return bcData.get_all_homes_as_xy_combined_gen(
         CRITIC_BATCH_SIZE, N_TIME_STEPS, firstN=gv.DATA_AMT)
 
 if __name__ == "__main__":
     gen = get_generator()
+    data = get_data()
+    gan = wgan.wgan()
 
-
-    # gan = wgan.wgan()
     exit()
