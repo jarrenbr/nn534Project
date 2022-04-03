@@ -4,7 +4,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 
-from utils import filePaths as fp, globalVars as gv
+from utils import filePaths as fp, globalVars as gv, common
 from networks.gans import genApi, wgan
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
@@ -82,6 +82,9 @@ def run_gan():
     return gan
 
 if __name__ == "__main__":
+
+    if gv.DEBUG:
+        common.enable_tf_debug()
     gan = run_gan()
 
     exit()

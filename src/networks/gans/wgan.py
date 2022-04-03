@@ -156,4 +156,5 @@ class wgan(keras.Model):
 
 if __name__ == "__main__":
     gan = wgan()
+
     pass
