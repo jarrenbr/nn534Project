@@ -9,7 +9,7 @@ class folder:
     raw = "raw/"
     processed = 'processed/'
     misc = "misc/"
-    kmModel = misc + "kmModels/"
+    kmModel = "kmModels/"
 
 
 @dataclass(frozen=True)

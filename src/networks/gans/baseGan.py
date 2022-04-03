@@ -1,3 +1,4 @@
+import keras.models
 from keras.layers import BatchNormalization, Dense, Reshape, Flatten, Conv1D, Concatenate
 from keras.layers import Conv2DTranspose, LeakyReLU, Dropout, Embedding, Activation
 from processData.binaryCasasProcess import binaryCasasData as bcData
@@ -327,6 +328,13 @@ def main():
     dataset = load_real_samples()
     # train model
     train(generator, discriminator, gan_model, dataset, latent_dim)
+
+    from utils import filePaths as fp, globalVars as gv
+    if not gv.DEBUG:
+        gan_model.save(fp.folder.kmModel + "baseGan.km")
+
+    #next time
+    #gan_model = keras.models.load_model(fp.folder.kmModel + "baseGan.km")
 
     blah_a = [x for x in range(len(real_data_loss))]
 
