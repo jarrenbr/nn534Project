@@ -7,10 +7,38 @@ from processData.binaryCasasProcess import binaryCasasData as bcData
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
 from utils import common, globalVars as gv
+from utils import filePaths as fp
+from pathlib import Path
+import pandas as pd
+import glob
 
 BATCH_SIZE = 64
 N_TIME_STEPS = 32
 EPOCHS = 2 if gv.DEBUG else 6
+
+def run():
+    df = getSynthData()
+    trainModel(df)
+
+"""
+Merge multiple .csv files into one dataframe
+"""
+def getSynthData():
+    synth_dir = Path(__file__).parent.parent.parent/'synthetic-data'
+    all_files = glob.glob(str(synth_dir) + "/*.csv")
+    df_from_each_file = (pd.read_csv(f, header = None) for f in all_files)
+    df = pd.concat(df_from_each_file, ignore_index=True)
+    return df
+
+def trainModel(df: pd.DataFrame):
+    train=df.sample(frac=0.8, random_state=200) #random state is a seed value
+    test=df.drop(train.index)
+    x_train = train.iloc[:, :bcNames.pivots.activities.start]
+    y_train = train.iloc[:, bcNames.pivots.activities.start:]
+    x_test = test.iloc[:, :bcNames.pivots.activities.start]
+    y_test = test.iloc[:, bcNames.pivots.activities.start:]
+    print(train.shape)
+
 
 def basic_cnn() -> keras.models.Model:
     inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features))) #should be 48 channels
@@ -38,11 +66,10 @@ def run_classifiers(data:common.ml_data):
     return model, history
 
 if __name__ == "__main__":
-    allHomes = bcData.get_all_homes_as_xy_split_gen(
-        batchSize=BATCH_SIZE, nTimesteps=N_TIME_STEPS,
-        xyPivot=bcNames.pivots.activities.start, firstN=gv.DATA_AMT
-    )
-    run_classifiers(allHomes[0].data)
-
-
+    # allHomes = bcData.get_all_homes_as_xy_split_gen(
+    #     batchSize=BATCH_SIZE, nTimesteps=N_TIME_STEPS,
+    #     xyPivot=bcNames.pivots.activities.start, firstN=gv.DATA_AMT
+    # )
+    # run_classifiers(allHomes[0].data)
+    run()
     exit()
