@@ -32,10 +32,13 @@ def get_generator() -> keras.models.Model:
         cBlocks.conv_args(nFilters=96, kernelSize=3),
         cBlocks.conv_args(nFilters=96, kernelSize=3),
         cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=bcNames.nGanFeatures, kernelSize=3),
         ]
-    for arg in args:
-        x = layers.Conv1DTranspose(**arg.kwargs)(inputLayer)
+
+    x = layers.Conv1DTranspose(**args[0].kwargs)(inputLayer)
+    x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
+    for arg in args[1:]:
+        x = layers.Conv1DTranspose(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
 
     model = keras.models.Model(inputLayer, x, "LSTM_Generator")
@@ -56,9 +59,11 @@ def get_critic() -> keras.models.Model:
         cBlocks.conv_args(nFilters=96, kernelSize=3),
         cBlocks.conv_args(nFilters=96, kernelSize=3),
         ]
-    for arg in args:
-        x = layers.Conv1D(**arg.kwargs)(inputLayer)
-        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
+    x = layers.Conv1DTranspose(**args[0].kwargs)(inputLayer)
+    x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
+    for arg in args[1:]:
+        x = layers.Conv1DTranspose(**arg.kwargs)(x)
+        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
 
     model = keras.models.Model(inputLayer, x, "Critic")
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),

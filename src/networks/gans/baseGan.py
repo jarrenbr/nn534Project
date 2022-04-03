@@ -65,8 +65,8 @@ def define_discriminator(in_shape=(384, 1), n_classes=4):
     model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt, metrics=['accuracy'])
     model.summary()
     # plot the model
-    tensorflow.keras.utils.plot_model(model, to_file='results/discriminator_plot.png', show_shapes=True,
-                                      show_layer_names=True)
+    # tensorflow.keras.utils.plot_model(model, to_file='results/discriminator_plot.png', show_shapes=True,
+    #                                   show_layer_names=True)
     return model
 
 
@@ -121,8 +121,8 @@ def define_generator(latent_dim, n_classes=4):
     model = Model([in_lat, in_label], out_layer)
     model.summary()
     # plot the model
-    tensorflow.keras.utils.plot_model(model, to_file='results/generator_plot.png', show_shapes=True,
-                                      show_layer_names=True)
+    # tensorflow.keras.utils.plot_model(model, to_file='results/generator_plot.png', show_shapes=True,
+    #                                   show_layer_names=True)
     return model
 
 
@@ -140,7 +140,7 @@ def define_gan(g_model, d_model):
     # summarise the model
     model.summary()
     # plot the model
-    tensorflow.keras.utils.plot_model(model, to_file='results/gan_plot.png', show_shapes=True, show_layer_names=True)
+    # tensorflow.keras.utils.plot_model(model, to_file='results/gan_plot.png', show_shapes=True, show_layer_names=True)
     return model
 
 
