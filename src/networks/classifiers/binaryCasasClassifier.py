@@ -7,10 +7,10 @@ from processData.binaryCasasProcess import binaryCasasData as bcData
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
 from utils import common, globalVars as gv
-from utils import filePaths as fp
 from pathlib import Path
 import pandas as pd
 import glob
+from processData import windowsGenerator as wg
 
 BATCH_SIZE = 64
 N_TIME_STEPS = 32
@@ -26,6 +26,7 @@ Merge multiple .csv files into one dataframe
 def getSynthData():
     synth_dir = Path(__file__).parent.parent.parent/'synthetic-data'
     all_files = glob.glob(str(synth_dir) + "/*.csv")
+    print(all_files)
     df_from_each_file = (pd.read_csv(f, header = None) for f in all_files)
     df = pd.concat(df_from_each_file, ignore_index=True)
     return df
@@ -33,11 +34,13 @@ def getSynthData():
 def trainModel(df: pd.DataFrame):
     train=df.sample(frac=0.8, random_state=200) #random state is a seed value
     test=df.drop(train.index)
-    x_train = train.iloc[:, :bcNames.pivots.activities.start]
-    y_train = train.iloc[:, bcNames.pivots.activities.start:]
-    x_test = test.iloc[:, :bcNames.pivots.activities.start]
-    y_test = test.iloc[:, bcNames.pivots.activities.start:]
-    print(train.shape)
+    train_gen = getGen(train)
+    test_gen = getGen(test)
+    print(df.shape)
+
+def getGen(df: pd.DataFrame) -> wg.windows_generator:
+    return bcData.df_to_gen(df, wg.x_y_split_windows, batchSize = BATCH_SIZE, nTimesteps = N_TIME_STEPS, xyPivot = bcNames.pivots.activities.start, stride = None)
+
 
 
 def basic_cnn() -> keras.models.Model:
