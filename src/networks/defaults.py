@@ -15,6 +15,7 @@ MIN_MAX_RNG = (MIN_VAL, MAX_VAL)
 #Training
 STEPS_PER_EPOCH = 2 if gv.DEBUG else 1000
 VALIDATION_STEPS = 2 if gv.DEBUG else 150
+PREDICT_STEPS = 40 if gv.DEBUG else 1000
 
 
 KERAS_FIT_KWARGS = {"steps_per_epoch" : STEPS_PER_EPOCH, "validations_steps" : VALIDATION_STEPS}
