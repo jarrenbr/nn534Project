@@ -23,19 +23,19 @@ fake_data_acc = []
 
 
 # define the standalone discriminator model
-def define_discriminator(in_shape=(384, 1), n_classes=4):
+def define_discriminator(in_shape=(384, 48), n_classes=14):
     # weight initialization
     # init = RandomNormal(stddev=0.02)
     # image input
     in_image = Input(shape=in_shape)
 
     # down sample to 14x14
-    fe = Conv1D(16, 3, strides=2, padding='same')(in_image)
+    fe = Conv1D(24, 3, strides=2, padding='same')(in_image)
     fe = LeakyReLU(alpha=0.2)(fe)
     fe = Dropout(0.2)(fe)
 
     # normal
-    fe = Conv1D(32, 3, strides=2, padding='same')(fe)
+    fe = Conv1D(48, 3, strides=2, padding='same')(fe)
     fe = BatchNormalization()(fe)
     fe = LeakyReLU(alpha=0.2)(fe)
     fe = Dropout(0.2)(fe)
@@ -47,7 +47,7 @@ def define_discriminator(in_shape=(384, 1), n_classes=4):
     fe = Dropout(0.2)(fe)
 
     # down sample one more
-    fe = Conv1D(128, 3, strides=2, padding='same')(fe)
+    fe = Conv1D(192, 3, strides=2, padding='same')(fe)
     fe = BatchNormalization()(fe)
     fe = LeakyReLU(alpha=0.2)(fe)
     fe = Dropout(0.2)(fe)
@@ -55,39 +55,39 @@ def define_discriminator(in_shape=(384, 1), n_classes=4):
     # flatten feature maps
     fe = Flatten()(fe)
     # real/fake output
-    out1 = Dense(1, activation='sigmoid')(fe)
+    out1 = Dense(48, activation='sigmoid')(fe)
     # class label output
-    out2 = Dense(n_classes, activation='softmax')(fe)
+    out2 = Dense(48, activation='softmax')(fe)
     # define model
     model = Model(in_image, [out1, out2])
     # compile model
     opt = tensorflow.keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-    model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt, metrics=['accuracy'])
+    model.compile(loss=['binary_crossentropy', 'binary_crossentropy'], optimizer=opt, metrics=['accuracy'])
     model.summary()
     # plot the model
-    # tensorflow.keras.utils.plot_model(model, to_file='results/discriminator_plot.png', show_shapes=True,
-    #                                   show_layer_names=True)
+    tensorflow.keras.utils.plot_model(model, to_file='results/discriminator_plot.png', show_shapes=True,
+                                      show_layer_names=True)
     return model
 
 
 # define the standalone generator model
-def define_generator(latent_dim, n_classes=4):
+def define_generator(latent_dim, n_classes=14):
     # weight initialization
     # init = RandomNormal(stddev=0.02)
-    depth = 32  # 32
+    depth = 48  # 32
     ks = 3
     dropout = 0.25
     dim = 96  #
     # label input
-    in_label = Input(shape=(1,))
+    in_label = Input(shape=(latent_dim,))
     # embedding for categorical input
-    li = Embedding(n_classes, 50)(in_label)
+    li = Embedding(150, 1)(in_label)
     # linear multiplication
-    n_nodes = 96 * 1
+    n_nodes = dim * 1
     li = Dense(n_nodes)(li)
 
     # reshape to additional channel
-    li = Reshape((96, 1, 1))(li)
+    li = Reshape((dim, 1, 48))(li)
     # image generator input
     in_lat = Input(shape=(latent_dim,))
     # foundation for 7x7 image
@@ -98,12 +98,12 @@ def define_generator(latent_dim, n_classes=4):
     # merge image gen and label input
     merge = Concatenate()([gen, li])  # gen=96,1,32 x li=96,1,1
     # up sample to 192,1,16
-    gen = Conv2DTranspose(16, 3, strides=(2, 1), padding='same')(merge)
+    gen = Conv2DTranspose(96, 3, strides=(2, 1), padding='same')(merge)
     gen = BatchNormalization()(gen)
     gen = LeakyReLU(alpha=0.2)(gen)
 
     # up sample to  384,1,8
-    gen = Conv2DTranspose(8, 3, strides=(2, 1), padding='same')(gen)
+    gen = Conv2DTranspose(48, 3, strides=(2, 1), padding='same')(gen)
     gen = BatchNormalization()(gen)
     gen = LeakyReLU(alpha=0.2)(gen)
 
@@ -112,17 +112,17 @@ def define_generator(latent_dim, n_classes=4):
     # gen = BatchNormalization()(gen)
     # gen = Activation('relu')(gen)
     # 384 x 1 property image
-    gen = Reshape((384, -1))(gen)
+    gen = Reshape((384, 48))(gen)
     # up sample to 28x28
     # gen = Conv1DTranspose(1, 3, padding='same', kernel_initializer=init)(gen)
-    gen = Conv1D(1, 3, strides=1, padding='same')(gen)
-    out_layer = Activation('tanh')(gen)
+    gen = Conv1D(48, 3, strides=1, padding='same')(gen)
+    out_layer = Activation('relu')(gen)
     # define model
     model = Model([in_lat, in_label], out_layer)
     model.summary()
     # plot the model
-    # tensorflow.keras.utils.plot_model(model, to_file='results/generator_plot.png', show_shapes=True,
-    #                                   show_layer_names=True)
+    tensorflow.keras.utils.plot_model(model, to_file='results/generator_plot.png', show_shapes=True,
+                                      show_layer_names=True)
     return model
 
 
@@ -136,11 +136,11 @@ def define_gan(g_model, d_model):
     model = Model(g_model.input, gan_output)
     # compile model
     opt = tensorflow.keras.optimizers.Adam(lr=0.0002, beta_1=0.5)
-    model.compile(loss=['binary_crossentropy', 'sparse_categorical_crossentropy'], optimizer=opt, metrics=['accuracy'])
+    model.compile(loss=['binary_crossentropy'], optimizer=opt, metrics=['accuracy'])
     # summarise the model
     model.summary()
     # plot the model
-    # tensorflow.keras.utils.plot_model(model, to_file='results/gan_plot.png', show_shapes=True, show_layer_names=True)
+    tensorflow.keras.utils.plot_model(model, to_file='results/gan_plot.png', show_shapes=True, show_layer_names=True)
     return model
 
 
@@ -149,21 +149,22 @@ def load_real_samples():
     df1 = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
     df2 = pd.read_csv('data/binaryCasas/processed/b2Train.csv', skiprows=1)
     df3 = pd.read_csv('data/binaryCasas/processed/b3Train.csv', skiprows=1)
-    df = df1 + df2 + df3
+    df = pd.concat([df1, df2, df3])
+    df = df.drop(df.tail(45614).index)
     # load dataset
     data_xy = df.astype('float')
     pd.DataFrame(data_xy)
     scaler = MinMaxScaler(copy=False)
     window = 384
     n = ((np.where(np.any(data_xy, axis=1))[0][-1] + 1) // window) * window
-    xx = scaler.fit_transform(data_xy.iloc[:n, 0].values.reshape(-1, 1))
-    y_train = data_xy.iloc[:(n - window), 1].values.reshape(-1, 1)
+    xx = (scaler.fit_transform(data_xy.iloc[:n, 0].values.reshape(-1, 1))).reshape(28176, 48)
+    y_train = (data_xy.iloc[:(n - window), 1].values.reshape(-1, 1)).reshape(28168, 48)
 
     # make to matrix
-    x_train = np.asarray([xx[i:i + window] for i in range(n - window)])
+    x_train = np.asarray([xx[i:i + window] for i in range(28168 - window)], dtype=float)
 
-    X = x_train.copy()
-    train_y = y_train.copy()
+    X = np.asarray(x_train.copy())
+    train_y = np.asarray(y_train.copy())
 
     X = (X - 127.5) / 127.5
     print(X.shape, train_y.shape)
@@ -171,37 +172,37 @@ def load_real_samples():
 
 
 # select real samples
-def generate_real_samples(dataset, n_samples):
+def generate_real_samples(dataset, n_samples=28168):
     # split into images and labels
     images, labels = dataset
     # choose random instances
-    ix = randint(0, images.shape[0], n_samples)
+    ix = randint(0, images.shape[0]//128, n_samples)
     # select images and labels
-    X, labels = images[ix], labels[ix]
+    X, labels = np.asarray(images[ix]), np.asarray(labels[ix])
     # generate class labels
-    y = ones((n_samples, 1))
+    y = ones((n_samples, 48))
     return [X, labels], y
 
 
 # generate points in latent space as input for the generator
-def generate_latent_points(latent_dim, n_samples, n_classes=4):
+def generate_latent_points(latent_dim, n_samples, n_classes=48):
     # generate points in the latent space
     x_input = randn(latent_dim * n_samples)
     # reshape into a batch of inputs for the network
     z_input = x_input.reshape(n_samples, latent_dim)
     # generate labels
-    labels = randint(0, n_classes, n_samples)  # check these labels!
+    labels = randint(0, n_classes, (n_samples, 48))  # check these labels!
     return [z_input, labels]
 
 
 # use the generator to generate n fake examples, with class labels
-def generate_fake_samples(generator, latent_dim, n_samples):
+def generate_fake_samples(generator, latent_dim, n_samples=1):
     # generate points in latent space
-    z_input, labels_input = generate_latent_points(latent_dim, n_samples)
+    z_input, labels_input = generate_latent_points(latent_dim,  n_samples)
     # predict outputs
     images = generator.predict([z_input, labels_input])
     # create class labels
-    y = zeros((n_samples, 1))
+    y = zeros((n_samples, 48))
     return [images, labels_input], y
 
 
@@ -225,7 +226,7 @@ def save_plot(examples, epoch, n=10):
 def summarize_performance(step, g_model, latent_dim, n_samples=100):
     # prepare fake examples
     [X, nmn_label], nmn_y = generate_fake_samples(g_model, latent_dim,
-                                                  n_samples)  # TODO!:Numan (nmns were _ and _) - change labels in this row and debug!
+                                                  n_samples)
     # scale from [-1,1] to [0,1]
     X = (X + 1) / 2.0
     # plot images
@@ -251,23 +252,23 @@ def summarize_performance(step, g_model, latent_dim, n_samples=100):
 
 
 # train the generator and discriminator
-def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=5, n_batch=64):
+def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=5, n_batch=4):
     # calculate the number of batches per training epoch
     bat_per_epo = 10 # 50 # 100 # int(dataset[0].shape[0] / n_batch)
     print('batch per epoch: %d' % bat_per_epo)
     # calculate the number of training iterations
-    n_steps = 100 # 500 # 1000 # bat_per_epo * n_epochs # 15
+    n_steps = 10 # 500 # 1000 # bat_per_epo * n_epochs # 15
     print('number of steps: %d' % n_steps)
     # calculate the size of half a batch of samples
     half_batch = int(n_batch / 2)
     # manually enumerate epochs
     for i in range(n_steps):
         # get randomly selected 'real' samples
-        [X_real, labels_real], y_real = generate_real_samples(dataset, half_batch)
+        [X_real, labels_real], y_real = generate_real_samples(dataset)
         # update discriminator model weights
         _, d_r1, d_r2, _, _ = d_model.train_on_batch(X_real, [y_real, labels_real])
         # generate 'fake' examples
-        [X_fake, labels_fake], y_fake = generate_fake_samples(g_model, latent_dim, half_batch)
+        [X_fake, labels_fake], y_fake = generate_fake_samples(g_model, latent_dim)
         # write_data to file
         write_synthetic_to_csv(X_fake, i)
         # evaluate the model
@@ -284,9 +285,9 @@ def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=5, n_batch=
         # prepare points in latent space as input for the generator
         [z_input, z_labels] = generate_latent_points(latent_dim, n_batch)
         # create inverted labels for the fake samples
-        y_gan = ones((n_batch, 1))
+        y_gan = ones((n_batch, 48))
         # update the generator via the discriminator's error
-        loss, g_1, g_2, acc, _ = gan_model.train_on_batch([z_input, z_labels], [y_gan, z_labels])
+        loss, g_1, g_2, acc = gan_model.train_on_batch([z_input, z_labels], [y_gan, z_labels])
         # summarize loss on this batch
         print('>%d, dr[%.3f,%.3f], df[%.3f,%.3f], g[%.3f,%.3f]' % (i + 1, d_r1, d_r2, d_f, d_f2, g_1, g_2))
         # evaluate the model performance every 'epoch'
@@ -295,29 +296,28 @@ def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=5, n_batch=
 
 
 def write_synthetic_to_csv(x, i):
-    with open('results/synthetic_data{}.csv'.format(i), 'w', encoding='UTF8', newline='') as f:
+    with open('results/synthetic_data.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
         header = ['Time', 'Signal', 'D021', 'D022', 'D023', 'D024', 'D025', 'D026', 'D027', 'D028', 'D029', 'D030',
                   'D031', 'D032', 'M001', 'M002', 'M003', 'M004', 'M005', 'M006', 'M007', 'M008', 'M009', 'M010',
                   'M011', 'M012', 'M013', 'M014', 'M015', 'M016', 'M017', 'M018', 'M019', 'M020', 'Bathing',
-                  'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Housekeeping', 'Leave_Home,Meal_Preparation',
+                  'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Housekeeping', 'Leave_Hom', 'Meal_Preparation',
                   'Other_Activity', 'Personal_Hygiene', 'Relax', 'Sleeping_Not_in_Bed', 'Sleeping_in_Bed',
                   'Take_Medicine', 'Work']
-        # start with (32, 384, 1) to (32*1, 384):
-        new_arr = einops.rearrange(x, 'h w i -> (h i) w')
-        arr = einops.rearrange(new_arr, 'h w -> w h')
-        y = [0 for x in range(384)]
+        # start with (96, 384, 48) to (96*384, 48):
+        arr = einops.rearrange(x, 'h w i -> (h w) i')
         # write the header
         writer.writerow(header)
         row = []
-        for w in range(len(y)):
-            row = arr[w].flatten() + [y[w]]
+        for w in range(384):
+            row = arr[w].flatten()
             writer.writerow(row)
+        f.close()
 
 
 def main():
     # size of the latent space
-    latent_dim = 100
+    latent_dim = 48
     # create the discriminator
     discriminator = define_discriminator()
     # create the generator
