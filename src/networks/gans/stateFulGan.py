@@ -67,6 +67,23 @@ def get_lstm_generator(batchSize=defaults.BATCH_SIZE) -> keras.models.Model:
         x = layers.Conv1DTranspose(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
 
+    # x1 = layers.LSTM(
+    #         bcNames.nGanFeatures,
+    #         dropout=defaults.DROPOUT_PORTION,
+    #         stateful=True,
+    #         return_sequences=True
+    #     )(x)
+    #
+    # x2 = layers.LSTM(
+    #         bcNames.nGanFeatures,
+    #         dropout=defaults.DROPOUT_PORTION,
+    #         stateful=True,
+    #         return_sequences=True,
+    #         go_backwards=True,
+    #     )(x)
+
+    # x = layers.Concatenate()((x1,x2))
+
     x = layers.Bidirectional(
         layers.LSTM(
             bcNames.nGanFeatures,
@@ -110,21 +127,26 @@ def get_critic() -> keras.models.Model:
 
 def get_data(batchSize = BATCH_SIZE):
     return bcData.get_all_homes_as_xy_combined_gen(
-        batchSize, CRITIC_TIME_STEPS, firstN=gv.DATA_AMT)
+        batchSize, CRITIC_TIME_STEPS, firstN=None)#gv.DATA_AMT)
 
 def run_gan():
-    gen = get_lstm_generator(batchSize=32)
+    gen = get_lstm_generator()
     critic = get_critic()
     data = get_data()
     gan = wgan.wgan(
-        critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS
+        critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
+        batchSize=BATCH_SIZE,
     )
     gan.compile()
     # gan.fit(data[0].data.train.gen)
     windows = data[0].data.train.data
-    validSize = windows.shape[0] - (windows.shape[0] % (CRITIC_TIME_STEPS * bcNames.nGanFeatures))
-    windows = np.reshape(windows[:validSize], (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures))
-    gan.fit(windows)
+    validSize = windows.shape[0] - (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
+    assert validSize > 0
+    windows = np.reshape(
+        windows[:validSize],
+        (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
+    gan.fit(windows, batch_size = BATCH_SIZE)
     return gan
 
 if __name__ == "__main__":
