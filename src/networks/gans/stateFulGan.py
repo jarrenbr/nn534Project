@@ -17,22 +17,20 @@ MODEL_DIR = fp.folder.kmModel + "statefulGan/"
 GENERATOR_FILE = MODEL_DIR + "generator" + fp.extensions.kerasModel
 CRITIC_FILE = MODEL_DIR + "critic" + fp.extensions.kerasModel
 
-GENERATOR_BATCH_SIZE = 16
-CRITIC_BATCH_SIZE = 128
-N_TIME_STEPS = 32
+GENERATOR_TIME_STEPS = 16
+CRITIC_TIME_STEPS = 128
 NOISE_DIM = 128
 
-def get_generator() -> keras.models.Model:
-    #goal: 32 X 48
+def get_conv_generator() -> keras.models.Model:
+    #goal: 16 X 48
     inputLayer = keras.Input(
-        shape=(1, NOISE_DIM)
+        shape=(1,NOISE_DIM,)
     )
+
     args = [
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=bcNames.nGanFeatures, kernelSize=3),
+        cBlocks.conv_args(nFilters=100, kernelSize=4),
+        cBlocks.conv_args(nFilters=75, kernelSize=2),
+        cBlocks.conv_args(nFilters=bcNames.nGanFeatures, kernelSize=2),
         ]
 
     x = layers.Conv1DTranspose(**args[0].kwargs)(inputLayer)
@@ -40,49 +38,59 @@ def get_generator() -> keras.models.Model:
     for arg in args[1:]:
         x = layers.Conv1DTranspose(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
+    x = layers.Dense(bcNames.nGanFeatures, keras.activations.tanh)(x)
 
-    model = keras.models.Model(inputLayer, x, "LSTM_Generator")
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= "Conv_Generator")
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
+def get_lstm_generator() -> keras.models.Model:
+
+    return
 
 def get_critic() -> keras.models.Model:
-    #goal: 32 X 48
+    #128 X 48
     inputLayer = keras.Input(
-        shape=(N_TIME_STEPS, bcNames.nGanFeatures)
+        shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
+    x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(inputLayer)
+
     args = [
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
-        cBlocks.conv_args(nFilters=96, kernelSize=3),
+        cBlocks.conv_args(nFilters=100, kernelSize=8, strides=4),
+        cBlocks.conv_args(nFilters=150, kernelSize=4),
+        cBlocks.conv_args(nFilters=150, kernelSize=4),
+        cBlocks.conv_args(nFilters=160, kernelSize=4),
         ]
-    x = layers.Conv1DTranspose(**args[0].kwargs)(inputLayer)
+    x = layers.Conv1D(**args[0].kwargs)(x)
     x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
     for arg in args[1:]:
-        x = layers.Conv1DTranspose(**arg.kwargs)(x)
+        x = layers.Conv1D(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+    x = layers.Flatten()(x)
+    x = layers.Dense(1)(x)
 
-    model = keras.models.Model(inputLayer, x, "Critic")
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= "Conv_Critic")
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
-def get_data():
+def get_data(batchSize = defaults.BATCH_SIZE):
     return bcData.get_all_homes_as_xy_combined_gen(
-        CRITIC_BATCH_SIZE, N_TIME_STEPS, firstN=gv.DATA_AMT)
+        batchSize, CRITIC_TIME_STEPS, firstN=gv.DATA_AMT)
 
 def run_gan():
-    gen = get_generator()
+    gen = get_conv_generator()
     critic = get_critic()
     data = get_data()
-    gan = wgan.wgan(critic, gen, defaults.NOISE_DIM)
+    gan = wgan.wgan(
+        critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS
+    )
     gan.compile()
     # gan.fit(data[0].data.train.gen)
     windows = data[0].data.train.data
-    windows = np.reshape(windows[:1024], (-1, N_TIME_STEPS, bcNames.nGanFeatures))
+    validSize = windows.shape[0] - (windows.shape[0] % (CRITIC_TIME_STEPS * bcNames.nGanFeatures))
+    windows = np.reshape(windows[:validSize], (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures))
     gan.fit(windows)
     return gan
 
