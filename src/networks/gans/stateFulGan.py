@@ -20,6 +20,7 @@ CRITIC_FILE = MODEL_DIR + "critic" + fp.extensions.kerasModel
 GENERATOR_TIME_STEPS = 16
 CRITIC_TIME_STEPS = 128
 NOISE_DIM = 128
+BATCH_SIZE = defaults.BATCH_SIZE
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -45,9 +46,41 @@ def get_conv_generator() -> keras.models.Model:
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
-def get_lstm_generator() -> keras.models.Model:
+def get_lstm_generator(batchSize=defaults.BATCH_SIZE) -> keras.models.Model:
+    # goal: 16 X 48
+    inputLayer = keras.Input(
+        batch_shape=(batchSize, 1, NOISE_DIM,)
+    )
 
-    return
+    nFilters = 100
+
+    args = [
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=4),
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=2),
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=2),
+    ]
+
+    x = layers.Conv1DTranspose(**args[0].kwargs)(inputLayer)
+    x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
+
+    for arg in args[1:]:
+        x = layers.Conv1DTranspose(**arg.kwargs)(x)
+        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
+
+    x = layers.Bidirectional(
+        layers.LSTM(
+            bcNames.nGanFeatures,
+            dropout=defaults.DROPOUT_PORTION,
+            stateful=True,
+            return_sequences=True
+        )
+    )(x)
+    x = layers.Dense(bcNames.nGanFeatures, keras.activations.tanh)(x)
+
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name="LSTM_Generator")
+    # model.compile(loss = keras.losses.CategoricalCrossentropy(),
+    #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
+    return model
 
 def get_critic() -> keras.models.Model:
     #128 X 48
@@ -75,12 +108,12 @@ def get_critic() -> keras.models.Model:
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
-def get_data(batchSize = defaults.BATCH_SIZE):
+def get_data(batchSize = BATCH_SIZE):
     return bcData.get_all_homes_as_xy_combined_gen(
         batchSize, CRITIC_TIME_STEPS, firstN=gv.DATA_AMT)
 
 def run_gan():
-    gen = get_conv_generator()
+    gen = get_lstm_generator(batchSize=32)
     critic = get_critic()
     data = get_data()
     gan = wgan.wgan(
