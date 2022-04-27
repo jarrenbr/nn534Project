@@ -149,6 +149,7 @@ class wgan(keras.Model):
         super(wgan, self).fit(*args, **kwargs)
         if len(self.fullHistory.history) == 0:
             self.fullHistory = self.history
+            #future aggregations make these misleading
             self.fullHistory.params = None
             self.fullHistory.epoch = None
         else:
