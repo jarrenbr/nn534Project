@@ -28,6 +28,10 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 1000
 
+# NPREV_EPOCHS_DONE = 0
+NPREV_EPOCHS_DONE = 12
+NEPOCHS = 1 if gv.DEBUG else 18
+
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
     inputLayer = keras.Input(
@@ -123,9 +127,7 @@ def train_on_house(gan, house):
 
     nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS))
     validSize = windows.shape[0] - nOmitted
-    if not gv.DEBUG:
-        print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
-
+    print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
     assert validSize > 0
 
     #randomly choose to omit head or tail
@@ -154,10 +156,8 @@ def run_gan(loadGan=False):
         batchSize=BATCH_SIZE,
     )
     gan.compile()
-    # previousEpochsDone = 0
-    previousEpochsDone = 12
-    for epoch in range(1 if gv.DEBUG else 18):
-        print("Epoch #{} ({} total)".format(epoch, previousEpochsDone + epoch))
+    for epoch in range(NEPOCHS):
+        print("Epoch #{} ({} total)".format(epoch, NPREV_EPOCHS_DONE + epoch))
         for house in data[::-1]:
             gan = train_on_house(gan, house)
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     loadGan = True
     # loadGan = False
     gan = run_gan(loadGan=loadGan)
-    gan.plot_losses(None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses")
+    gan.plot_losses(None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses", NPREV_EPOCHS_DONE)
 
     if gv.DEBUG:
         plt.show()

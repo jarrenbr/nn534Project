@@ -156,10 +156,11 @@ class wgan(keras.Model):
 
         return self.history
 
-    def plot_losses(self, saveFile=None):
-        plt.plot(self.fullHistory.history[wgan.criticLossKey])
-        plt.plot(self.fullHistory.history[wgan.genLossKey])
-        plt.hlines(0, 0, len(self.fullHistory.history[wgan.criticLossKey]), 'k', 'dashed')
+    def plot_losses(self, saveFile=None, nEpochsPrior = 0):
+        xs = [i + nEpochsPrior for i in range(len(self.fullHistory.history[wgan.criticLossKey]))]
+        plt.plot(xs, self.fullHistory.history[wgan.criticLossKey])
+        plt.plot(xs, self.fullHistory.history[wgan.genLossKey])
+        plt.hlines(0, nEpochsPrior, nEpochsPrior + len(self.fullHistory.history[wgan.criticLossKey]), 'k', 'dashed')
         plt.title("WGAN Losses")
         plt.ylabel("Loss")
         plt.xlabel("Epoch")

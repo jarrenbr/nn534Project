@@ -5,4 +5,4 @@ def get_debug_flag():
 
 DEBUG = get_debug_flag()
 
-DATA_AMT = int(1e5) if DEBUG else None
+DATA_AMT = int(2**14) if DEBUG else None

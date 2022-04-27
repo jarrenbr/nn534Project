@@ -31,9 +31,9 @@ def _preprocess(home:home.home):
 
 def _get_home(getHomeFunc, name, firstN=None):
     h = getHomeFunc()
-    h.transform(lambda x: x[:firstN])
     h = home.home(data=h, name = name)
     h = _preprocess(h)
+    h.data.transform(lambda x: x[:firstN])
     return h
 
 def get_home1(firstN=None):
