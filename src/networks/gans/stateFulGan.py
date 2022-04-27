@@ -131,8 +131,14 @@ def train_on_house(gan, house):
     # print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
     assert validSize > 0
 
-    #randomly choose to omit head or tail
-    windows = windows[nOmitted:] if np.random.randint(0,2) else windows[:validSize]
+    # random offset if some are omitted
+    # randomly choose to omit head or tail
+    if nOmitted:
+        offset = np.random.randint(0, min(CRITIC_TIME_STEPS, nOmitted))
+        windows = windows[nOmitted-offset:-offset] if np.random.randint(0,2) else windows[offset:validSize+offset]
+    else:
+        windows = windows[nOmitted:] if np.random.randint(0,2) else windows[:validSize]
+
 
     windows = np.reshape(
         windows,
@@ -182,7 +188,7 @@ if __name__ == "__main__":
     gan = run_gan(loadGan=loadGan)
     gan.plot_losses_mult_samples_epoch(
         3,
-        None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses_CriticNoise",
+        None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses",#_CriticNoise",
         NPREV_EPOCHS_DONE
     )
 
