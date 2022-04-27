@@ -20,7 +20,7 @@ CRITIC_FILE = MODEL_DIR + "critic" + fp.extensions.kerasModel
 GENERATOR_TIME_STEPS = 16
 CRITIC_TIME_STEPS = 128
 NOISE_DIM = 128
-BATCH_SIZE = defaults.BATCH_SIZE
+BATCH_SIZE = 32
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -46,7 +46,7 @@ def get_conv_generator() -> keras.models.Model:
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
-def get_lstm_generator(batchSize=defaults.BATCH_SIZE) -> keras.models.Model:
+def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
     # goal: 16 X 48
     inputLayer = keras.Input(
         batch_shape=(batchSize, 1, NOISE_DIM,)
@@ -138,15 +138,22 @@ def run_gan():
         batchSize=BATCH_SIZE,
     )
     gan.compile()
-    # gan.fit(data[0].data.train.gen)
-    windows = data[0].data.train.data
-    validSize = windows.shape[0] - (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
-    assert validSize > 0
-    windows = np.reshape(
-        windows[:validSize],
-        (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
-    )
-    gan.fit(windows, batch_size = BATCH_SIZE)
+    # doDataGenerator = True
+    doDataGenerator = False
+    if doDataGenerator:
+        gan.fit(data[0].data.train.gen, shuffle=False)
+    else:
+        windows = data[0].data.train.data
+        nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
+        validSize = windows.shape[0] - nOmitted
+        assert validSize > 0
+        windows = np.reshape(
+            windows[:validSize],
+            (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+        )
+        print("Number observations {}".format(validSize))
+        print("Number omitted {}".format(nOmitted))
+        gan.fit(windows, batch_size = BATCH_SIZE, shuffle = False)
     return gan
 
 if __name__ == "__main__":

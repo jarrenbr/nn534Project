@@ -1,4 +1,5 @@
 import numpy as np
+import tensorflow as tf
 
 class windows_generator:
     """
@@ -39,7 +40,7 @@ class windows_generator:
         return self.data[self.currIndex]
 
     def get_data(self):
-        return self.data[self.currIndex]
+        return tf.convert_to_tensor(self.data[self.currIndex])
 
     def _gen_init(self):
         while True:
