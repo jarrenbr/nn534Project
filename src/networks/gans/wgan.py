@@ -112,10 +112,27 @@ class wgan(keras.Model):
         # the critic for `x` more steps (typically 5) as compared to
         # one step of the generator. Here we will train it for 3 extra steps
         # as compared to 5 to reduce the training time.
+
+        #cannot recreate the synthetic data multiple times else it will confuse the generator (in theory)
+        # Train the generator
+        with tf.GradientTape() as tape:
+            # Generate fake images using the generator
+            fakeImgs = self.get_gen_out_for_critic()
+            # Get the critic logits for fake images
+            genImgLogits = self.critic(fakeImgs, training=True)
+            # Calculate the generator loss
+            g_loss = self.g_loss_fn(genImgLogits)
+
+        # Get the gradients w.r.t the generator loss
+        gen_gradient = tape.gradient(g_loss, self.generator.trainable_variables)
+        # Update the weights of the generator using the generator optimizer
+        self.g_optimizer.apply_gradients(
+            zip(gen_gradient, self.generator.trainable_variables)
+        )
+
         for i in range(self.c_steps):
             with tf.GradientTape() as tape:
                 # Generate fake images from the latent vector
-                fakeImgs = self.get_gen_out_for_critic()
 
                 fakeLogits = self.critic(fakeImgs, training=True)
                 realLogits = self.critic(realImgs, training=True)
@@ -134,21 +151,6 @@ class wgan(keras.Model):
                 zip(d_gradient, self.critic.trainable_variables)
             )
 
-        # Train the generator
-        with tf.GradientTape() as tape:
-            # Generate fake images using the generator
-            genImgs = self.get_gen_out_for_critic()
-            # Get the critic logits for fake images
-            genImgLogits = self.critic(genImgs, training=True)
-            # Calculate the generator loss
-            g_loss = self.g_loss_fn(genImgLogits)
-
-        # Get the gradients w.r.t the generator loss
-        gen_gradient = tape.gradient(g_loss, self.generator.trainable_variables)
-        # Update the weights of the generator using the generator optimizer
-        self.g_optimizer.apply_gradients(
-            zip(gen_gradient, self.generator.trainable_variables)
-        )
         return {wgan.criticLossKey: d_loss, wgan.genLossKey: g_loss}
 
     def fit(self, *args, **kwargs):

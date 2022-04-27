@@ -137,17 +137,28 @@ def train_on_house(gan, house):
         gan.fit(house.data.train.gen, shuffle=False, steps_per_epoch=STEPS_PER_EPOCH)
     else:
         windows = house.data.train.data
+
         nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
         validSize = windows.shape[0] - nOmitted
+        print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
         assert validSize > 0
+
         windows = np.reshape(
-            windows[:validSize],
+            windows[nOmitted:],
             (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
         )
-        print("Number observations {}".format(validSize))
-        print("Number omitted {}".format(nOmitted))
-        gan.fit(windows, batch_size = BATCH_SIZE, shuffle = False)
+        gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
+        gan.reset_states()
 
+        if validSize * .6 < nOmitted:
+            print("A lot was omitted in last train. Doing the rest with some overlap.")
+            windows = house.data.train.data
+            windows = np.reshape(
+                windows[:validSize],
+                (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+            )
+            gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
+            gan.reset_states()
 
     return gan
 
@@ -160,9 +171,10 @@ def run_gan():
         batchSize=BATCH_SIZE,
     )
     gan.compile()
-    for house in data:
-        gan = train_on_house(gan, house)
-        gan.reset_states()
+    for epoch in range(3):
+        for house in data[::-1]:
+            gan = train_on_house(gan, house)
+            gan.reset_states()
     return gan
 
 if __name__ == "__main__":
