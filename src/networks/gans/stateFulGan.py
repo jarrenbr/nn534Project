@@ -151,7 +151,7 @@ def train_on_house(gan, house):
         gan.reset_states()
 
         if validSize * .6 < nOmitted:
-            print("A lot was omitted in last train. Doing the rest with some overlap.")
+            print("A lot was omitted in the last train. Doing the rest with some overlap.")
             windows = house.data.train.data
             windows = np.reshape(
                 windows[:validSize],
@@ -174,7 +174,6 @@ def run_gan():
     for epoch in range(3):
         for house in data[::-1]:
             gan = train_on_house(gan, house)
-            gan.reset_states()
     return gan
 
 if __name__ == "__main__":
