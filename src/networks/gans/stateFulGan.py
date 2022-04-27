@@ -11,11 +11,16 @@ from networks import commonBlocks as cBlocks, defaults
 from processData.binaryCasasProcess import binaryCasasData as bcData
 
 
-MODEL_DIR = fp.folder.kmModel + "statefulGan/"
+MODEL_DIR = fp.folder.kmModel + "wgan/"
 # def classifier_naming
 
-GENERATOR_FILE = MODEL_DIR + "generator" + fp.extensions.kerasModel
-CRITIC_FILE = MODEL_DIR + "critic" + fp.extensions.kerasModel
+LSTM_GENERATOR_NAME = "LSTM_Generator"
+CNN_GENERATOR_NAME = "CNN_Generator"
+CRITIC_NAME = "CNN_Critic"
+
+LSTM_GENERATOR_FILE = MODEL_DIR + LSTM_GENERATOR_NAME
+CNN_GENERATOR_FILE = MODEL_DIR
+CRITIC_FILE = MODEL_DIR + CRITIC_NAME
 
 GENERATOR_TIME_STEPS = 16
 CRITIC_TIME_STEPS = 128
@@ -42,7 +47,7 @@ def get_conv_generator() -> keras.models.Model:
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True,)
     x = layers.Dense(bcNames.nGanFeatures, keras.activations.tanh)(x)
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= "Conv_Generator")
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CNN_GENERATOR_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
@@ -68,23 +73,6 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
         x = layers.Conv1DTranspose(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
 
-    # x1 = layers.LSTM(
-    #         bcNames.nGanFeatures,
-    #         dropout=defaults.DROPOUT_PORTION,
-    #         stateful=True,
-    #         return_sequences=True
-    #     )(x)
-    #
-    # x2 = layers.LSTM(
-    #         bcNames.nGanFeatures,
-    #         dropout=defaults.DROPOUT_PORTION,
-    #         stateful=True,
-    #         return_sequences=True,
-    #         go_backwards=True,
-    #     )(x)
-
-    # x = layers.Concatenate()((x1,x2))
-
     x = layers.Bidirectional(
         layers.LSTM(
             bcNames.nGanFeatures,
@@ -95,7 +83,7 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
     )(x)
     x = layers.Dense(bcNames.nGanFeatures, keras.activations.tanh)(x)
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name="LSTM_Generator")
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
@@ -121,7 +109,7 @@ def get_critic() -> keras.models.Model:
     x = layers.Flatten()(x)
     x = layers.Dense(1)(x)
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= "Conv_Critic")
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
@@ -150,24 +138,36 @@ def train_on_house(gan, house):
 
     return gan
 
-def run_gan():
-    gen = get_lstm_generator()
-    critic = get_critic()
+def run_gan(loadGan=False):
+    if loadGan:
+        gen = keras.models.load_model(LSTM_GENERATOR_FILE)
+        critic = keras.models.load_model(CRITIC_FILE)
+    else:
+        gen = get_lstm_generator()
+        critic = get_critic()
+
     data = get_data()
     gan = wgan.wgan(
         critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
         batchSize=BATCH_SIZE,
     )
     gan.compile()
-    for epoch in range(2):
+    for epoch in range(10):
         for house in data[::-1]:
             gan = train_on_house(gan, house)
+
+    if not gv.DEBUG:
+        gan.save(genFilePath=LSTM_GENERATOR_FILE, criticFilePath=CRITIC_FILE)
+
     return gan
 
 if __name__ == "__main__":
 
     if gv.DEBUG:
         common.enable_tf_debug()
-    gan = run_gan()
+
+    # loadGan = True
+    loadGan = False
+    gan = run_gan(loadGan=loadGan)
 
     exit()

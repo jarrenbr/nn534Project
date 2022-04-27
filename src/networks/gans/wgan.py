@@ -5,7 +5,7 @@ import types
 
 import genApi
 from networks import defaults
-
+from utils import filePaths as fp
 
 # Define the loss functions for the critic,
 # which should be (fake_loss - real_loss).
@@ -51,9 +51,9 @@ class wgan(keras.Model):
         self.gp_weight = gp_weight
         self.history = {}
 
-    def save(self):
-        self.generator.save(self.generator.name)
-        self.critic.save(self.critic.name)
+    def save(self, genFilePath, criticFilePath):
+        self.generator.save(genFilePath)
+        self.critic.save(criticFilePath)
 
     def compile(self, c_optimizer=defaults.optimizer(), g_optimizer=defaults.optimizer(),
                 d_loss_fn=critic_loss, g_loss_fn=generator_loss):
@@ -159,10 +159,6 @@ class wgan(keras.Model):
         return {wgan.criticLossKey: d_loss, wgan.genLossKey: g_loss}
 
     def fit(self, *args, **kwargs):
-        self.history = super(wgan, self).fit(*args, **kwargs)
-        return self.history
-
-    def fit_generator(self, *args, **kwargs):
         self.history = super(wgan, self).fit(*args, **kwargs)
         return self.history
 

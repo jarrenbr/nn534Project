@@ -131,3 +131,4 @@ dmypy.json
 #custom
 .idea/
 scratch.py
+kmModels/
