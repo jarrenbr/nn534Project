@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
+import types
 
 import genApi
 from networks import defaults
@@ -93,7 +94,11 @@ class wgan(keras.Model):
         gp = tf.reduce_mean((norm - 1.0) ** 2)
         return gp
 
-    def train_step(self, realImgs):
+    def train_step(self, realImgs,):
+        # if isinstance(realImgs, types.GeneratorType):
+        #     realGen = realImgs
+        #     realImgs = next(realGen)
+
         if isinstance(realImgs, tuple):
             realImgs = realImgs[0]
 
@@ -154,6 +159,10 @@ class wgan(keras.Model):
         return {wgan.criticLossKey: d_loss, wgan.genLossKey: g_loss}
 
     def fit(self, *args, **kwargs):
+        self.history = super(wgan, self).fit(*args, **kwargs)
+        return self.history
+
+    def fit_generator(self, *args, **kwargs):
         self.history = super(wgan, self).fit(*args, **kwargs)
         return self.history
 

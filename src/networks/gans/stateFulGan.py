@@ -131,34 +131,19 @@ def get_data(batchSize = BATCH_SIZE):
         batchSize, CRITIC_TIME_STEPS, firstN=None)#gv.DATA_AMT)
 
 def train_on_house(gan, house):
-    # doDataGenerator = True
-    doDataGenerator = False
-    if doDataGenerator:
-        gan.fit(house.data.train.gen, shuffle=False, steps_per_epoch=STEPS_PER_EPOCH)
-    else:
-        windows = house.data.train.data
+    windows = house.data.train.data
 
-        nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
-        validSize = windows.shape[0] - nOmitted
-        print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
-        assert validSize > 0
+    nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS))
+    validSize = windows.shape[0] - nOmitted
+    print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
+    assert validSize > 0
 
-        windows = np.reshape(
-            windows[nOmitted:],
-            (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
-        )
-        gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
-        gan.reset_states()
-
-        if validSize * .6 < nOmitted:
-            print("A lot was omitted in the last train. Doing the rest with some overlap.")
-            windows = house.data.train.data
-            windows = np.reshape(
-                windows[:validSize],
-                (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
-            )
-            gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
-            gan.reset_states()
+    windows = np.reshape(
+        windows[nOmitted:],
+        (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
+    gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
+    gan.reset_states()
 
     return gan
 

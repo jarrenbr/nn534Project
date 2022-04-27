@@ -1,7 +1,28 @@
 import numpy as np
 import tensorflow as tf
+import math
 
-class windows_generator:
+# class windows_generator(tf.keras.utils.Sequence):
+#     pass
+#
+# class x_y_split_windows(windows_generator):
+#     pass
+#
+# class x_y_concat_windows(windows_generator):
+#     def __init__(self, data, batchSize, nTimesteps, offset=None, *args, **kwargs):
+#         self.data = data
+#         self.nTimesteps = nTimesteps
+#         self.batchSize = batchSize
+#         self.offset=offset
+#
+#     def __len__(self):
+#         return math.ceil(len(self.data) / (self.batchSize*self.nTimesteps))
+#
+#     def __getitem__(self, idx):
+#         steps = self.batchSize * self.nTimesteps
+#         return self.data[idx * steps:(idx+1)*steps].reshape((self.batchSize, self.nTimesteps, -1))
+
+class windows_generator():
     """
     Call next(self.gen) to slide the window.
     """
@@ -10,6 +31,8 @@ class windows_generator:
         self.stride = nTimesteps if stride is None else stride
         self.batchSize = batchSize
         self.nTimesteps = nTimesteps
+        nBatches = int(data.shape[0] / nTimesteps)
+        self.nSamplesPerBatch = int(nBatches / batchSize)
 
         self.gen = self._gen_init()
         self.init_index()

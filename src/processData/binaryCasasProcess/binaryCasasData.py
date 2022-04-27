@@ -66,8 +66,6 @@ def get_all_homes_as_xy_split_gen(batchSize, nTimesteps, stride=None, xyPivot=bc
     return _get_all_homes_as_gen(firstN, wg.x_y_split_windows, xyPivot=xyPivot,
                                  batchSize=batchSize, nTimesteps=nTimesteps, stride=stride)
 
-
-
 if __name__ == "__main__":
     # homes = get_all_homes(100)
     homes = get_all_homes_as_xy_combined_gen(8, 4, firstN=100)
