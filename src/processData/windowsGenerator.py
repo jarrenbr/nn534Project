@@ -1,26 +1,5 @@
 import numpy as np
 import tensorflow as tf
-import math
-
-# class windows_generator(tf.keras.utils.Sequence):
-#     pass
-#
-# class x_y_split_windows(windows_generator):
-#     pass
-#
-# class x_y_concat_windows(windows_generator):
-#     def __init__(self, data, batchSize, nTimesteps, offset=None, *args, **kwargs):
-#         self.data = data
-#         self.nTimesteps = nTimesteps
-#         self.batchSize = batchSize
-#         self.offset=offset
-#
-#     def __len__(self):
-#         return math.ceil(len(self.data) / (self.batchSize*self.nTimesteps))
-#
-#     def __getitem__(self, idx):
-#         steps = self.batchSize * self.nTimesteps
-#         return self.data[idx * steps:(idx+1)*steps].reshape((self.batchSize, self.nTimesteps, -1))
 
 class windows_generator():
     """
@@ -87,3 +66,26 @@ class x_y_split_windows(windows_generator):
 
 class x_y_concat_windows(windows_generator):
     pass
+
+
+# import math
+
+# class windows_generator(tf.keras.utils.Sequence):
+#     pass
+#
+# class x_y_split_windows(windows_generator):
+#     pass
+#
+# class x_y_concat_windows(windows_generator):
+#     def __init__(self, data, batchSize, nTimesteps, offset=None, *args, **kwargs):
+#         self.data = data
+#         self.nTimesteps = nTimesteps
+#         self.batchSize = batchSize
+#         self.offset=offset
+#
+#     def __len__(self):
+#         return math.ceil(len(self.data) / (self.batchSize*self.nTimesteps))
+#
+#     def __getitem__(self, idx):
+#         steps = self.batchSize * self.nTimesteps
+#         return self.data[idx * steps:(idx+1)*steps].reshape((self.batchSize, self.nTimesteps, -1))

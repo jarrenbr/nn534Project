@@ -138,8 +138,11 @@ def train_on_house(gan, house):
     print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
     assert validSize > 0
 
+    #randomly choose to omit head or tail
+    windows = windows[nOmitted:] if np.random.randint(0,2) else windows[:validSize]
+
     windows = np.reshape(
-        windows[nOmitted:],
+        windows,
         (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
     gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
@@ -156,7 +159,7 @@ def run_gan():
         batchSize=BATCH_SIZE,
     )
     gan.compile()
-    for epoch in range(3):
+    for epoch in range(2):
         for house in data[::-1]:
             gan = train_on_house(gan, house)
     return gan
