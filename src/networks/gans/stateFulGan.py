@@ -116,14 +116,16 @@ def get_critic() -> keras.models.Model:
 
 def get_data(batchSize = BATCH_SIZE):
     return bcData.get_all_homes_as_xy_combined_gen(
-        batchSize, CRITIC_TIME_STEPS, firstN=None)#gv.DATA_AMT)
+        batchSize, CRITIC_TIME_STEPS, firstN=gv.DATA_AMT)
 
 def train_on_house(gan, house):
     windows = house.data.train.data
 
     nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS))
     validSize = windows.shape[0] - nOmitted
-    print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
+    if not gv.DEBUG:
+        print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
+
     assert validSize > 0
 
     #randomly choose to omit head or tail
@@ -133,7 +135,7 @@ def train_on_house(gan, house):
         windows,
         (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
-    gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False, )
+    gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False,)
     gan.reset_states()
 
     return gan
@@ -152,7 +154,10 @@ def run_gan(loadGan=False):
         batchSize=BATCH_SIZE,
     )
     gan.compile()
-    for epoch in range(10):
+    # previousEpochsDone = 0
+    previousEpochsDone = 12
+    for epoch in range(1 if gv.DEBUG else 18):
+        print("Epoch #{} ({} total)".format(epoch, previousEpochsDone + epoch))
         for house in data[::-1]:
             gan = train_on_house(gan, house)
 
@@ -166,8 +171,11 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    # loadGan = True
-    loadGan = False
+    loadGan = True
+    # loadGan = False
     gan = run_gan(loadGan=loadGan)
+    gan.plot_losses(None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses")
 
+    if gv.DEBUG:
+        plt.show()
     exit()

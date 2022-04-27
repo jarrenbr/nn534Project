@@ -10,6 +10,9 @@ class folder:
     processed = 'processed/'
     misc = "misc/"
     kmModel = "kmModels/"
+    img = "img/"
+    statefulGanImg = img + "statefulGan/"
+    basicGanImg = img + "basicGan/"
 
 
 @dataclass(frozen=True)
