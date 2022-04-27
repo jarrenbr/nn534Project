@@ -129,21 +129,13 @@ def get_data(batchSize = BATCH_SIZE):
     return bcData.get_all_homes_as_xy_combined_gen(
         batchSize, CRITIC_TIME_STEPS, firstN=None)#gv.DATA_AMT)
 
-def run_gan():
-    gen = get_lstm_generator()
-    critic = get_critic()
-    data = get_data()
-    gan = wgan.wgan(
-        critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
-        batchSize=BATCH_SIZE,
-    )
-    gan.compile()
+def train_on_house(gan, house):
     # doDataGenerator = True
     doDataGenerator = False
     if doDataGenerator:
-        gan.fit(data[0].data.train.gen, shuffle=False)
+        gan.fit(house.data.train.gen, shuffle=False)
     else:
-        windows = data[0].data.train.data
+        windows = house.data.train.data
         nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
         validSize = windows.shape[0] - nOmitted
         assert validSize > 0
@@ -154,6 +146,20 @@ def run_gan():
         print("Number observations {}".format(validSize))
         print("Number omitted {}".format(nOmitted))
         gan.fit(windows, batch_size = BATCH_SIZE, shuffle = False)
+    return gan
+
+def run_gan():
+    gen = get_lstm_generator()
+    critic = get_critic()
+    data = get_data()
+    gan = wgan.wgan(
+        critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
+        batchSize=BATCH_SIZE,
+    )
+    gan.compile()
+    for house in data:
+        gan = train_on_house(gan, house)
+        gan.reset_states()
     return gan
 
 if __name__ == "__main__":

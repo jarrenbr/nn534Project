@@ -170,7 +170,7 @@ class wgan(keras.Model):
 
     def reset_states(self):
         self.generator.reset_states()
-        self.critic.reset_states()
+        # self.critic.reset_states()
 
 
 if __name__ == "__main__":
