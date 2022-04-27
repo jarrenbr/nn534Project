@@ -28,9 +28,9 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 1000
 
-# NPREV_EPOCHS_DONE = 0
-NPREV_EPOCHS_DONE = 12
-NEPOCHS = 1 if gv.DEBUG else 18
+NPREV_EPOCHS_DONE = 0
+# NPREV_EPOCHS_DONE = 12
+NEPOCHS = 2 if gv.DEBUG else 25
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -97,7 +97,8 @@ def get_critic() -> keras.models.Model:
     inputLayer = keras.Input(
         shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
-    x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(inputLayer)
+    x = layers.GaussianNoise(.025)(inputLayer)
+    x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(x)
 
     args = [
         cBlocks.conv_args(nFilters=100, kernelSize=8, strides=4),
@@ -127,7 +128,7 @@ def train_on_house(gan, house):
 
     nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS))
     validSize = windows.shape[0] - nOmitted
-    print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
+    # print("House {}. Used:Omitted = {}:{}".format(house.name, validSize, nOmitted))
     assert validSize > 0
 
     #randomly choose to omit head or tail
@@ -156,8 +157,13 @@ def run_gan(loadGan=False):
         batchSize=BATCH_SIZE,
     )
     gan.compile()
+
     for epoch in range(NEPOCHS):
-        print("Epoch #{} ({} total)".format(epoch, NPREV_EPOCHS_DONE + epoch))
+        printMsg ="Epoch {}/{}".format(epoch, NEPOCHS)
+        if NPREV_EPOCHS_DONE:
+            printMsg += " ({} done prior)".format(NPREV_EPOCHS_DONE)
+        print(printMsg)
+
         for house in data[::-1]:
             gan = train_on_house(gan, house)
 
@@ -171,10 +177,14 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    loadGan = True
-    # loadGan = False
+    # loadGan = True
+    loadGan = False
     gan = run_gan(loadGan=loadGan)
-    gan.plot_losses(None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses", NPREV_EPOCHS_DONE)
+    gan.plot_losses_mult_samples_epoch(
+        3,
+        None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses_CriticNoise",
+        NPREV_EPOCHS_DONE
+    )
 
     if gv.DEBUG:
         plt.show()

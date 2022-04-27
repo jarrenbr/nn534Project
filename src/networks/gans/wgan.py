@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 import matplotlib.pyplot as plt
@@ -156,17 +157,33 @@ class wgan(keras.Model):
 
         return self.history
 
-    def plot_losses(self, saveFile=None, nEpochsPrior = 0):
-        xs = [i + nEpochsPrior for i in range(len(self.fullHistory.history[wgan.criticLossKey]))]
+    def plot_losses(self, saveFile=None,xs=None):
+        if xs is None:
+            xs = [i for i in range(len(self.fullHistory.history[wgan.criticLossKey]))]
         plt.plot(xs, self.fullHistory.history[wgan.criticLossKey])
         plt.plot(xs, self.fullHistory.history[wgan.genLossKey])
-        plt.hlines(0, nEpochsPrior, nEpochsPrior + len(self.fullHistory.history[wgan.criticLossKey]), 'k', 'dashed')
+        plt.hlines(0, xs[0], xs[0] + len(self.fullHistory.history[wgan.criticLossKey]), 'k', 'dashed')
         plt.title("WGAN Losses")
         plt.ylabel("Loss")
         plt.xlabel("Epoch")
         plt.legend([wgan.criticLossKey, wgan.genLossKey])
         if saveFile:
             plt.savefig(saveFile)
+
+    def plot_losses_mult_samples_epoch(self, samplesPerEpoch, saveFile=None, nEpochsPrior=0, ):
+        nYs = len(self.fullHistory.history[wgan.criticLossKey])
+        nEpochs = nYs / samplesPerEpoch
+        xs = np.linspace(nEpochsPrior + 1/samplesPerEpoch, nEpochsPrior + nEpochs, num=nYs)
+        plt.plot(xs, self.fullHistory.history[wgan.criticLossKey])
+        plt.plot(xs, self.fullHistory.history[wgan.genLossKey])
+        plt.hlines(0, xs[0], xs[-1], 'k', 'dashed')
+        plt.title("WGAN Losses")
+        plt.ylabel("Loss")
+        plt.xlabel("Epoch")
+        plt.legend([wgan.criticLossKey, wgan.genLossKey])
+        if saveFile:
+            plt.savefig(saveFile)
+
 
     def call(self, input):
         #only for keras' validation
