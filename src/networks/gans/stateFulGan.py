@@ -21,6 +21,7 @@ GENERATOR_TIME_STEPS = 16
 CRITIC_TIME_STEPS = 128
 NOISE_DIM = 128
 BATCH_SIZE = 32
+STEPS_PER_EPOCH = 1000
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -133,7 +134,7 @@ def train_on_house(gan, house):
     # doDataGenerator = True
     doDataGenerator = False
     if doDataGenerator:
-        gan.fit(house.data.train.gen, shuffle=False)
+        gan.fit(house.data.train.gen, shuffle=False, steps_per_epoch=STEPS_PER_EPOCH)
     else:
         windows = house.data.train.data
         nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS * bcNames.nGanFeatures))
@@ -146,6 +147,8 @@ def train_on_house(gan, house):
         print("Number observations {}".format(validSize))
         print("Number omitted {}".format(nOmitted))
         gan.fit(windows, batch_size = BATCH_SIZE, shuffle = False)
+
+
     return gan
 
 def run_gan():
