@@ -194,13 +194,13 @@ if __name__ == "__main__":
 
     genOut = []
     for sampleNum in range(10):
-        genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE)[np.newaxis])
+        genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE))
 
     #np.ndarray in shape (samples, time steps, features)
-    genOut = np.concatenate(genOut, axis=0)
+    genOut = np.concatenate(genOut, axis=0)#.reshape((-1, GENERATOR_TIME_STEPS, bcNames.nGanFeatures))
 
 
-    x,y = genOut[...,:len(bcNames.allSensors)], genOut[...,-1,len(bcNames.allSensors):]
+    x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
 
     print(x.shape, y.shape)
 
