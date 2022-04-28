@@ -34,6 +34,8 @@ rl = rawLabels
 
 
 features = [rl.time, rl.signal] + allSensors
+nFeatures = len(features)
+nActivities = len(allActivities)
 labels = allActivities
 allBinaryColumns = [rl.signal] + allSensors + allActivities
 
