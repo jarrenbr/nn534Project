@@ -30,7 +30,7 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 25
+NEPOCHS = 2 if gv.DEBUG else 1
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -191,6 +191,18 @@ if __name__ == "__main__":
         None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses",#_CriticNoise",
         NPREV_EPOCHS_DONE
     )
+
+    genOut = []
+    for sampleNum in range(10):
+        genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE)[np.newaxis])
+
+    #np.ndarray in shape (samples, time steps, features)
+    genOut = np.concatenate(genOut, axis=0)
+
+
+    x,y = genOut[...,:len(bcNames.allSensors)], genOut[...,-1,len(bcNames.allSensors):]
+
+    print(x.shape, y.shape)
 
     if gv.DEBUG:
         plt.show()
