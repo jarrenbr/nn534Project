@@ -30,8 +30,8 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-# NEPOCHS = 2 if gv.DEBUG else 1
-NEPOCHS = 0
+NEPOCHS = 2 if gv.DEBUG else 2
+# NEPOCHS = 0
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -193,8 +193,8 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    loadGan = True
-    # loadGan = False
+    # loadGan = True
+    loadGan = False
     gan = get_gan(loadGan)
     # gan = run_gan(gan)
 
@@ -203,7 +203,7 @@ if __name__ == "__main__":
         genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE))
 
     #np.ndarray in shape (samples, time steps, features)
-    genOut = np.concatenate(genOut, axis=0)#.reshape((-1, GENERATOR_TIME_STEPS, bcNames.nGanFeatures))
+    genOut = np.concatenate(genOut, axis=0)
 
 
     x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
