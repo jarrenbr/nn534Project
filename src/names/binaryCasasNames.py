@@ -19,8 +19,6 @@ allActivities = ['Bathing', 'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Ho
                  'Meal_Preparation', 'Other_Activity', 'Personal_Hygiene', 'Relax', 'Sleeping_Not_in_Bed',
                  'Sleeping_in_Bed', 'Take_Medicine', 'Work']
 
-nActivities = len(allActivities)
-
 sensColToOrd = { val : i for i, val in enumerate(allSensors)}
 
 
@@ -37,7 +35,10 @@ rl = rawLabels
 
 features = [rl.time, rl.signal] + allSensors
 nFeatures = len(features)
+
 labels = allActivities
+nLabels = len(allActivities)
+
 allBinaryColumns = [rl.signal] + allSensors + allActivities
 
 correctOrder = features + labels
