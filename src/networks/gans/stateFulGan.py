@@ -30,7 +30,8 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 1
+# NEPOCHS = 2 if gv.DEBUG else 1
+NEPOCHS = 0
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -149,7 +150,7 @@ def train_on_house(gan, house):
 
     return gan
 
-def run_gan(loadGan=False):
+def get_gan(loadGan=False):
     if loadGan:
         gen = keras.models.load_model(LSTM_GENERATOR_FILE)
         critic = keras.models.load_model(CRITIC_FILE)
@@ -157,12 +158,15 @@ def run_gan(loadGan=False):
         gen = get_lstm_generator()
         critic = get_critic()
 
-    data = get_data()
     gan = wgan.wgan(
         critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
         batchSize=BATCH_SIZE,
     )
     gan.compile()
+    return gan
+
+def run_gan(gan):
+    data = get_data()
 
     for epoch in range(NEPOCHS):
         printMsg ="Epoch {}/{}".format(epoch, NEPOCHS)
@@ -176,6 +180,12 @@ def run_gan(loadGan=False):
     if not gv.DEBUG:
         gan.save(genFilePath=LSTM_GENERATOR_FILE, criticFilePath=CRITIC_FILE)
 
+    gan.plot_losses_mult_samples_epoch(
+        3,
+        None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses",#_CriticNoise",
+        NPREV_EPOCHS_DONE
+    )
+
     return gan
 
 if __name__ == "__main__":
@@ -183,14 +193,10 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    # loadGan = True
-    loadGan = False
-    gan = run_gan(loadGan=loadGan)
-    gan.plot_losses_mult_samples_epoch(
-        3,
-        None if gv.DEBUG else fp.folder.statefulGanImg + "W0Losses",#_CriticNoise",
-        NPREV_EPOCHS_DONE
-    )
+    loadGan = True
+    # loadGan = False
+    gan = get_gan(loadGan)
+    # gan = run_gan(gan)
 
     genOut = []
     for sampleNum in range(10):
