@@ -17,9 +17,25 @@ def get_gen_out(gen, noiseDim=defaults.NOISE_DIM, batchSize=defaults.BATCH_SIZE,
         training=training
     )
 
-def get_nBatches(nBatches, **kwargs):
-    genOut = []
-    for batchNum in nBatches:
-        genOut.append(get_gen_out(**kwargs))
-    return np.concatenate(genOut, axis=0)
+def get_nBatches_lstm(nBatches, gen, resetStates=True, noiseDim=defaults.NOISE_DIM, batchSize=defaults.BATCH_SIZE, **kwargs):
+    genOut = [[] for _ in range(batchSize)]
+    for batchNum in range(nBatches):
+        oneOut = get_gen_out(gen=gen, noiseDim=noiseDim, batchSize=batchSize, **kwargs)
+        for i, arr in enumerate(oneOut):
+            genOut[i].append(arr)
+
+    #concat each query into its respective batch. Add new dim to prepare for next concat
+    genOut = [
+            tf.expand_dims(
+                tf.concat(batch, axis=0),
+                axis=0
+            )
+        for batch in genOut]
+
+    #concat batches into one arr
+    genOut = tf.concat(genOut, axis=0)
+
+    if resetStates:
+        gen.reset_states()
+    return genOut
 

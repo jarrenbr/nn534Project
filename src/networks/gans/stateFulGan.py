@@ -30,7 +30,7 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 10
+NEPOCHS = 2 if gv.DEBUG else 2
 # NEPOCHS = 0
 
 def get_conv_generator() -> keras.models.Model:
@@ -192,22 +192,23 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    # loadGan = True
-    loadGan = False
+    loadGan = True
+    # loadGan = False
     gan = get_gan(loadGan)
-    # gan = run_gan(gan)
+    gan = run_gan(gan)
+    genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
 
-    genOut = []
-    for sampleNum in range(10):
-        genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE))
+    # genOut = []
+    # for sampleNum in range(10):
+    #     genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE))
+    #
+    # #np.ndarray in shape (samples, time steps, features)
+    # genOut = np.concatenate(genOut, axis=0)
+    #
+    #
+    # x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
 
-    #np.ndarray in shape (samples, time steps, features)
-    genOut = np.concatenate(genOut, axis=0)
-
-
-    x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
-
-    print(x.shape, y.shape)
+    # print(x.shape, y.shape)
 
     if gv.DEBUG:
         plt.show()
