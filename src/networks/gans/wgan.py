@@ -54,7 +54,7 @@ class wgan(keras.Model):
         super(wgan, self).compile()
         self.c_optimizer = c_optimizer
         self.g_optimizer = g_optimizer
-        self.d_loss_fn = d_loss_fn
+        self.c_loss_fn = d_loss_fn
         self.g_loss_fn = g_loss_fn
 
 
@@ -101,10 +101,6 @@ class wgan(keras.Model):
         # 5. Add the gradient penalty to the critic loss
         # 6. Return the generator and critic losses as a loss dictionary
 
-        # Train the critic first. The original paper recommends training
-        # the critic for `x` more steps (typically 5) as compared to
-        # one step of the generator.
-
         #cannot recreate the synthetic data multiple times else it will confuse the generator (in theory)
         # Train the generator
         with tf.GradientTape() as tape:
@@ -124,13 +120,11 @@ class wgan(keras.Model):
 
         for i in range(self.cSteps):
             with tf.GradientTape() as tape:
-                # Generate fake images from the latent vector
-
                 fakeLogits = self.critic(fakeImgs, training=True)
                 realLogits = self.critic(realImgs, training=True)
 
                 # Calculate the critic loss using the fake and real image logits
-                cCost = self.d_loss_fn(real_img=realLogits, fake_img=fakeLogits)
+                cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
                 # Calculate the gradient penalty
                 gp = self.gradient_penalty(realImgs, fakeImgs)
                 # Add the gradient penalty to the original critic loss

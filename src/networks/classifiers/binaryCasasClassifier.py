@@ -45,10 +45,9 @@ def getGen(df: pd.DataFrame) -> wg.windows_generator:
 
 
 def basic_cnn() -> keras.models.Model:
-    inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features))) #should be 48 channels
-    x = cBlocks.conv_block(inputLayer, 24, defaults.leaky_relu(),) #16 timesteps
-    x = cBlocks.conv_block(x, 15, defaults.leaky_relu()) #8 timesteps
-    x = cBlocks.conv_block(x, 11, defaults.leaky_relu()) #4 timesteps
+    inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features))) #should be 16 X 48
+    x = cBlocks.conv_block(inputLayer, 20, defaults.leaky_relu(),) #8 timesteps
+    x = cBlocks.conv_block(x, 12, defaults.leaky_relu()) #4 timesteps
     x = cBlocks.conv_block(x, 8, defaults.leaky_relu()) #2 timesteps
     x = cBlocks.conv_block(x, len(bcNames.allActivities), activation=keras.activations.softmax)
     x = l.Flatten()(x)

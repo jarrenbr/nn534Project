@@ -140,7 +140,6 @@ def train_on_house(gan, house):
     else:
         windows = windows[nOmitted:] if np.random.randint(0,2) else windows[:validSize]
 
-
     windows = np.reshape(
         windows,
         (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
