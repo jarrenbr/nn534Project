@@ -1,3 +1,4 @@
+import numpy as np
 import tensorflow as tf
 
 from networks import defaults
@@ -15,3 +16,10 @@ def get_gen_out(gen, noiseDim=defaults.NOISE_DIM, batchSize=defaults.BATCH_SIZE,
         get_gen_input((batchSize, nTimeSteps, noiseDim)),
         training=training
     )
+
+def get_nBatches(nBatches, **kwargs):
+    genOut = []
+    for batchNum in nBatches:
+        genOut.append(get_gen_out(**kwargs))
+    return np.concatenate(genOut, axis=0)
+
