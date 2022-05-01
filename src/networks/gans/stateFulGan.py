@@ -30,7 +30,7 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 2
+NEPOCHS = 2 if gv.DEBUG else 10
 # NEPOCHS = 0
 
 def get_conv_generator() -> keras.models.Model:
