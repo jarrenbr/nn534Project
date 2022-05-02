@@ -86,7 +86,11 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
             return_sequences=True
         )
     )(x)
-    x = layers.Dense(bcNames.nGanFeatures, keras.activations.tanh)(x)
+    time = layers.Dense(1, keras.activations.sigmoid)(x)
+    signal = layers.Dense(1, keras.activations.sigmoid)(x)
+    sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
+    activities = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
+    x = layers.Concatenate()([time, signal, sensors, activities])
 
     model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
@@ -192,10 +196,10 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    loadGan = True
-    # loadGan = False
+    # loadGan = True
+    loadGan = False
     gan = get_gan(loadGan)
-    # gan = run_gan(gan)
+    gan = run_gan(gan)
     genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
     genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
 
