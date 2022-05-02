@@ -2,9 +2,10 @@ import keras.models
 from keras.layers import BatchNormalization, Dense, Reshape, Flatten, Conv1D, Concatenate
 from keras.layers import Conv2DTranspose, LeakyReLU, Dropout, Embedding, Activation
 from processData.binaryCasasProcess import binaryCasasData as bcData
-from sklearn.preprocessing import MinMaxScaler
+#from sklearn.preprocessing import MinMaxScaler
 from numpy.random import randn, randint
 from keras.models import Model, Input
+from granger_causailty import granger as g
 from utils import globalVars as gv
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
@@ -20,7 +21,7 @@ real_data_loss = []
 fake_data_loss = []
 real_data_acc = []
 fake_data_acc = []
-
+causality = True
 
 # define the standalone discriminator model
 def define_discriminator(in_shape=(384, 48), n_classes=14):
@@ -146,7 +147,7 @@ def define_gan(g_model, d_model):
 
 # load images
 def load_real_samples():
-    df1 = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+    df1 = pd.read_csv('data/binaryCasas/processed/b1Train.csv',skiprows=1)
     df2 = pd.read_csv('data/binaryCasas/processed/b2Train.csv', skiprows=1)
     df3 = pd.read_csv('data/binaryCasas/processed/b3Train.csv', skiprows=1)
     df = pd.concat([df1, df2, df3])
@@ -316,46 +317,53 @@ def write_synthetic_to_csv(x, i):
 
 
 def main():
-    # size of the latent space
-    latent_dim = 48
-    # create the discriminator
-    discriminator = define_discriminator()
-    # create the generator
-    generator = define_generator(latent_dim)
-    # create the gan
-    gan_model = define_gan(generator, discriminator)
-    # load image data
-    dataset = load_real_samples()
-    # train model
-    train(generator, discriminator, gan_model, dataset, latent_dim)
+    if not causality:
+        # size of the latent space
+        latent_dim = 48
+        # create the discriminator
+        discriminator = define_discriminator()
+        # create the generator
+        generator = define_generator(latent_dim)
+        # create the gan
+        gan_model = define_gan(generator, discriminator)
+        # load image data
+        dataset = load_real_samples()
+        # train model
+        train(generator, discriminator, gan_model, dataset, latent_dim)
 
-    from utils import filePaths as fp, globalVars as gv
-    if not gv.DEBUG:
-        gan_model.save(fp.folder.kmModel + "baseGan.km")
+        from utils import filePaths as fp, globalVars as gv
+        if not gv.DEBUG:
+            gan_model.save(fp.folder.kmModel + "baseGan.km")
 
-    #next time
-    #gan_model = keras.models.load_model(fp.folder.kmModel + "baseGan.km")
+        #next time
+        #gan_model = keras.models.load_model(fp.folder.kmModel + "baseGan.km")
 
-    blah_a = [x for x in range(len(real_data_loss))]
+        blah_a = [x for x in range(len(real_data_loss))]
 
-    plt.plot(blah_a, real_data_loss, label="real data loss", color='blue', )
-    plt.plot(blah_a, fake_data_loss, label="fake data loss", color='red', )
-    plt.xlabel('Iteration number')
-    plt.ylabel('Error Rate')
-    plt.legend()
-    plt.title('Graph that Shows Error by Iteration')
-    plt.savefig('results/Error_Comparison.png')
-    plt.show()
-    plt.clf()
+        plt.plot(blah_a, real_data_loss, label="real data loss", color='blue', )
+        plt.plot(blah_a, fake_data_loss, label="fake data loss", color='red', )
+        plt.xlabel('Iteration number')
+        plt.ylabel('Error Rate')
+        plt.legend()
+        plt.title('Graph that Shows Error by Iteration')
+        plt.savefig('results/Error_Comparison.png')
+        plt.show()
+        plt.clf()
 
-    plt.plot(blah_a, real_data_acc, label="real data acc", color='purple', )
-    plt.plot(blah_a, fake_data_acc, label="fake data acc", color='green', )
-    plt.xlabel('Iteration number')
-    plt.ylabel('Accuracy Rate')
-    plt.legend()
-    plt.title('Graph that Shows Accuracy by Iteration')
-    plt.savefig('results/Acc_Comparison.png')
-    plt.show()
+        plt.plot(blah_a, real_data_acc, label="real data acc", color='purple', )
+        plt.plot(blah_a, fake_data_acc, label="fake data acc", color='green', )
+        plt.xlabel('Iteration number')
+        plt.ylabel('Accuracy Rate')
+        plt.legend()
+        plt.title('Graph that Shows Accuracy by Iteration')
+        plt.savefig('results/Acc_Comparison.png')
+        plt.show()
+
+    else:
+        #df = pd.read_csv('data/binaryCasas/processed/b1Train.csv')
+        #print(g.grangers_causation_matrix(df, variables=df.columns))
+        df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
+        print(g.grangers_causation_matrix(df1, variables=df1.columns))
 
 
 if __name__ == "__main__":
