@@ -30,16 +30,16 @@ class windows_generator():
             shift = np.random.randint(0, self.nTimesteps)
             self.currIndex += shift
 
-    def xy_split(self):
-        x, y = np.split(
-            self.data[self.currIndex],
-            [self.xyPivot],
-            axis=-1
-        )
-        return x, y[:,-1]
-
-    def no_split(self):
-        return self.data[self.currIndex]
+    # def xy_split(self):
+    #     x, y = np.split(
+    #         self.data[self.currIndex],
+    #         [self.xyPivot],
+    #         axis=-1
+    #     )
+    #     return x, y[:,-1]
+    #
+    # def no_split(self):
+    #     return self.data[self.currIndex]
 
     def get_data(self):
         return tf.convert_to_tensor(self.data[self.currIndex])

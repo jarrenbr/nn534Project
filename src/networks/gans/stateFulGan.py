@@ -30,7 +30,7 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 2
+NEPOCHS = 2 if gv.DEBUG else 20
 # NEPOCHS = 0
 
 def get_conv_generator() -> keras.models.Model:
@@ -164,11 +164,11 @@ def get_gan(loadGan=False):
     gan.compile()
     return gan
 
-def run_gan(gan):
+def run_gan(gan, epochs=NEPOCHS):
     data = get_data()
 
-    for epoch in range(NEPOCHS):
-        printMsg ="Epoch {}/{}".format(epoch, NEPOCHS)
+    for epoch in range(epochs):
+        printMsg ="Epoch {}/{}".format(epoch, epochs)
         if NPREV_EPOCHS_DONE:
             printMsg += " ({} done prior)".format(NPREV_EPOCHS_DONE)
         print(printMsg)
