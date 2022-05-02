@@ -68,7 +68,7 @@ def run_classifiers(data:common.ml_data):
                         validation_data=data.test.gen, validation_steps=defaults.VALIDATION_STEPS)
     preds = model.predict(data.test.gen, steps=defaults.PREDICT_STEPS)
     predsOneHot = np.zeros(preds.shape)
-    ag = preds.argmax(axis=1).reshape((-1,1))
+    # ag = preds.argmax(axis=1).reshape((-1,1))
     predsOneHot[
         preds.argmax(axis=1).reshape((-1,1))
     ] = 1

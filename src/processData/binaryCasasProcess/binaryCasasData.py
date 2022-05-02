@@ -21,7 +21,6 @@ def _preprocess(home:home.home):
     """
     home's data is an ml_data of pd.DataFrame's.
     """
-
     #time
     home.maxTimeDif = common.ml_data()
     home.data.train, home.maxTimeDif.train = _preprocess_time(home.data.train)

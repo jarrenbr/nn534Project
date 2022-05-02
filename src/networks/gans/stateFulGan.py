@@ -8,7 +8,7 @@ from utils import filePaths as fp, globalVars as gv, common
 from networks.gans import genApi, wgan
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
-from processData.binaryCasasProcess import binaryCasasData as bcData
+from processData.binaryCasasProcess import binaryCasasData as bcData, postProcess as postProc
 
 
 MODEL_DIR = fp.folder.kmModel + "wgan/"
@@ -195,20 +195,10 @@ if __name__ == "__main__":
     loadGan = True
     # loadGan = False
     gan = get_gan(loadGan)
-    gan = run_gan(gan)
+    # gan = run_gan(gan)
     genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
+    genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
 
-    # genOut = []
-    # for sampleNum in range(10):
-    #     genOut.append(genApi.get_gen_out(gan.generator, NOISE_DIM, batchSize=BATCH_SIZE))
-    #
-    # #np.ndarray in shape (samples, time steps, features)
-    # genOut = np.concatenate(genOut, axis=0)
-    #
-    #
-    # x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
-
-    # print(x.shape, y.shape)
 
     if gv.DEBUG:
         plt.show()
