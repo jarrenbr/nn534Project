@@ -28,10 +28,9 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 1000
 
+NEPOCHS = 2 if gv.DEBUG else 10
 NPREV_EPOCHS_DONE = 0
-# NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 25
-# NEPOCHS = 0
+# NPREV_EPOCHS_DONE = NEPOCHS
 
 def get_conv_generator() -> keras.models.Model:
     #goal: 16 X 48
@@ -86,11 +85,12 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
             return_sequences=True
         )
     )(x)
-    time = layers.Dense(1, keras.activations.hard_sigmoid)(x)
+    # time = layers.Dense(1, keras.activations.hard_sigmoid)(x)
+    time = layers.Dense(1, keras.activations.sigmoid)(x)
     signal = layers.Dense(1, keras.activations.sigmoid)(x)
     sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
-    activities = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
-    x = layers.Concatenate()([time, signal, sensors, activities])
+    labels = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
+    x = layers.Concatenate()([time, signal, sensors, labels])
 
     model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),

@@ -18,7 +18,7 @@ GEN_FILE = KM_FOLDER + GEN_NAME
 NTIMESTEPS = 16
 NOISE_DIM = defaults.NOISE_DIM
 BATCH_SIZE = defaults.BATCH_SIZE
-NEPOCHS = 2 if gv.DEBUG else 10
+NEPOCHS = 10 if gv.DEBUG else 2
 NPREV_EPOCHS_DONE = 0
 
 def get_discriminator(nTimesteps=NTIMESTEPS)->keras.Model:

@@ -2,38 +2,34 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers as l
-from pathlib import Path
-import pandas as pd
-import glob
 import numpy as np
 import os
 
-from processData.binaryCasasProcess import binaryCasasData as bcData
+from processData.binaryCasasProcess import binaryCasasData as bcData, postProcess as pp
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
 from utils import common, globalVars as gv
-from processData import windowsGenerator as wg
-from networks.gans import stateFulGan as sfg
-from networks.gans import genApi, wgan
+from networks.gans import stateFulGan as sfg, genApi
 import matplotlib.pyplot as plt
-from processData.binaryCasasProcess import postProcess as pp
 
-BATCH_SIZE = 64
+BATCH_SIZE = sfg.BATCH_SIZE
 N_TIME_STEPS = 16
-EPOCHS = 20
+EPOCHS = 10
 PATH_ASSETS = os.getcwd()
+STEPS_PER_EPOCH = 250
 
 def run():
     # trtr("CNN_on_real")
 
-
     # loadGan = True
     loadGan = False
     gan = sfg.get_gan(loadGan)
-    gan = sfg.run_gan(gan, 20)
+    gan = sfg.run_gan(gan, 10)
 
     genOut = []
-    for sampleNum in range(5000):
+    for sampleNum in range(1000):
+        if sampleNum % 500 == 0:
+            print("On sample num {} with batch size {}".format(sampleNum, BATCH_SIZE))
         genOut.append(genApi.get_gen_out(gan.generator, sfg.NOISE_DIM, batchSize=sfg.BATCH_SIZE))
 
     #np.ndarray in shape (samples, time steps, features)
@@ -41,7 +37,8 @@ def run():
     genOut = pp.gen_out_to_real_normalized(genOut)
 
     x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
-    print(x.shape, y.shape)
+    print("X and Y shapes:", x.shape, y.shape)
+    print("Doing TSTR")
     tstr(x, y, "stateful_GAN")
 
 def tstr(x, y, title): 
@@ -50,7 +47,7 @@ def tstr(x, y, title):
         xyPivot=bcNames.pivots.activities.start, firstN=gv.DATA_AMT
     )
     model = basic_cnn()
-    history = model.fit(x, y, epochs=EPOCHS, steps_per_epoch = defaults.STEPS_PER_EPOCH,
+    history = model.fit(x, y, epochs=EPOCHS, steps_per_epoch = STEPS_PER_EPOCH,
                         validation_data=allHomes[0].data.test.gen, validation_steps=defaults.VALIDATION_STEPS)
     test_result_0 = model.evaluate(allHomes[0].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
     test_result_1 = model.evaluate(allHomes[1].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
@@ -75,7 +72,7 @@ def trtr(title):
         xyPivot=bcNames.pivots.activities.start, firstN=gv.DATA_AMT
     )
     model = basic_cnn()
-    history = model.fit(allHomes[0].data.train.gen, epochs=EPOCHS, steps_per_epoch = defaults.STEPS_PER_EPOCH,
+    history = model.fit(allHomes[0].data.train.gen, epochs=EPOCHS, steps_per_epoch = STEPS_PER_EPOCH,
                         validation_data=allHomes[0].data.test.gen, validation_steps=defaults.VALIDATION_STEPS)
     test_result_0 = model.evaluate(allHomes[0].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
     test_result_1 = model.evaluate(allHomes[1].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
@@ -108,4 +105,6 @@ def basic_cnn() -> keras.models.Model:
     return model
 
 if __name__ == "__main__":
+    if gv.DEBUG:
+        common.enable_tf_debug()
     run()
