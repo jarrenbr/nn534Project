@@ -18,7 +18,7 @@ GEN_FILE = KM_FOLDER + GEN_NAME
 NTIMESTEPS = 16
 NOISE_DIM = defaults.NOISE_DIM
 BATCH_SIZE = defaults.BATCH_SIZE
-NEPOCHS = 2 if gv.DEBUG else 3
+NEPOCHS = 1 if gv.DEBUG else 1
 NPREV_EPOCHS_DONE = 0
 
 def get_discriminator(nTimesteps=NTIMESTEPS)->keras.Model:
@@ -208,6 +208,7 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
+    common.enable_tf_debug()
     # loadGan = True
     loadGan = False
     baseGan = get_gan(loadGan)

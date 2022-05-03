@@ -25,18 +25,12 @@ def run():
     print("######### Base GAN #########")
     loadGan = False
     gan = bbg.get_gan(loadGan)
-    gan = bbg.train_gan(gan, 10)
+    gan = bbg.train_gan(gan, 1)
     genOut = []
-    for sampleNum in range(1000):
+    for sampleNum in range(2000):
         if sampleNum % 500 == 0:
             print("On sample num {} with batch size {}".format(sampleNum, BATCH_SIZE))
-        genOut.append(genApi.get_gen_out(gan.generator, sfg.NOISE_DIM, batchSize=sfg.BATCH_SIZE))
-
-    genOut = []
-    for sampleNum in range(1000):
-        if sampleNum % 500 == 0:
-            print("On sample num {} with batch size {}".format(sampleNum, BATCH_SIZE))
-        genOut.append(genApi.get_gen_out(gan.generator, sfg.NOISE_DIM, batchSize=sfg.BATCH_SIZE))
+        genOut.append(genApi.get_gen_out(gan.generator, bbg.NOISE_DIM, batchSize=bbg.BATCH_SIZE))
 
     #np.ndarray in shape (samples, time steps, features)
     genOut = np.concatenate(genOut, axis=0)
