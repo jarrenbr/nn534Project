@@ -362,12 +362,13 @@ def main():
 
     else:
         # REAL GRANGER CAUSALITY
-        #df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
-        #temp = df.to_numpy()
-        #a = np.where(temp == 0, 0.00001, temp)
-        #b = np.where(a == 1, 0.99, a)
-        #df = pd.DataFrame(b.astype('float'), columns=header)
-        #print(g.grangers_causation_matrix(df, variables=df.columns))
+        df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+        temp = df.iloc[:,0:934].to_numpy()
+        temp = np.multiply(temp, 0.0000000000000000001)
+        temp = np.where(temp == 0, 0.00001, temp)
+        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+        df = pd.DataFrame(temp, columns=header)
+        print(g.grangers_causation_matrix(df, variables=df.columns))
         print("\n\n\t_______________\n\n")
 
         # SYNTHETIC GRANGER CAUSALITY
