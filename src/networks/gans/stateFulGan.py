@@ -30,7 +30,7 @@ STEPS_PER_EPOCH = 1000
 
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = 12
-NEPOCHS = 2 if gv.DEBUG else 20
+NEPOCHS = 2 if gv.DEBUG else 25
 # NEPOCHS = 0
 
 def get_conv_generator() -> keras.models.Model:
@@ -86,7 +86,7 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
             return_sequences=True
         )
     )(x)
-    time = layers.Dense(1, keras.activations.sigmoid)(x)
+    time = layers.Dense(1, keras.activations.hard_sigmoid)(x)
     signal = layers.Dense(1, keras.activations.sigmoid)(x)
     sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
     activities = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
@@ -111,9 +111,9 @@ def get_critic() -> keras.models.Model:
         cBlocks.conv_args(nFilters=150, kernelSize=4),
         cBlocks.conv_args(nFilters=160, kernelSize=4),
         ]
-    x = layers.Conv1D(**args[0].kwargs)(x)
-    x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
-    for arg in args[1:]:
+    # x = layers.Conv1D(**args[0].kwargs)(x)
+    # x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
+    for arg in args:
         x = layers.Conv1D(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
     x = layers.Flatten()(x)

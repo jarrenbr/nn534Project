@@ -25,24 +25,24 @@ class wgan(keras.Model):
         self,
         critic,
         generator,
-        latent_dim,
+        latentDim,
         nCriticTimesteps,
         nGenTimesteps,
         batchSize = defaults.BATCH_SIZE,
-        critic_extra_steps=1,
-        gp_weight=10.0,
+        criticExtraSteps=1,
+        gpWeight=10.0,
     ):
         super(wgan, self).__init__()
         self.critic = critic
         self.generator = generator
-        self.latent_dim = latent_dim
+        self.latent_dim = latentDim
 
         assert nCriticTimesteps % nGenTimesteps == 0
         self.genToCriticFactor = int(nCriticTimesteps / nGenTimesteps)
 
         self.batchSize = batchSize
-        self.cSteps = critic_extra_steps
-        self.gpWeight = gp_weight
+        self.cSteps = criticExtraSteps
+        self.gpWeight = gpWeight
         self.fullHistory = tf.keras.callbacks.History()
 
     def save(self, genFilePath, criticFilePath):
@@ -50,11 +50,11 @@ class wgan(keras.Model):
         self.critic.save(criticFilePath)
 
     def compile(self, c_optimizer=defaults.optimizer(), g_optimizer=defaults.optimizer(),
-                d_loss_fn=critic_loss, g_loss_fn=generator_loss):
+                c_loss_fn=critic_loss, g_loss_fn=generator_loss):
         super(wgan, self).compile()
         self.c_optimizer = c_optimizer
-        self.g_optimizer = g_optimizer
-        self.c_loss_fn = d_loss_fn
+        self.gOptimizer = g_optimizer
+        self.c_loss_fn = c_loss_fn
         self.g_loss_fn = g_loss_fn
 
 
@@ -114,7 +114,7 @@ class wgan(keras.Model):
         # Get the gradients w.r.t the generator loss
         genGradient = tape.gradient(gLoss, self.generator.trainable_variables)
         # Update the weights of the generator using the generator optimizer
-        self.g_optimizer.apply_gradients(
+        self.gOptimizer.apply_gradients(
             zip(genGradient, self.generator.trainable_variables)
         )
 
