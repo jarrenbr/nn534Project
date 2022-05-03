@@ -1,11 +1,12 @@
 import keras.models
+from processData.binaryCasasProcess import binaryCasasData as bcData, postProcess as postProc
 from keras.layers import BatchNormalization, Dense, Reshape, Flatten, Conv1D, Concatenate
 from keras.layers import Conv2DTranspose, LeakyReLU, Dropout, Embedding, Activation
 from processData.binaryCasasProcess import binaryCasasData as bcData
 #from sklearn.preprocessing import MinMaxScaler
+from granger_causailty import granger as g
 from numpy.random import randn, randint
 from keras.models import Model, Input
-from granger_causailty import granger as g
 from utils import globalVars as gv
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
@@ -22,7 +23,12 @@ fake_data_loss = []
 real_data_acc = []
 fake_data_acc = []
 causality = True
-
+header = ['Time', 'Signal', 'D021', 'D022', 'D023', 'D024', 'D025', 'D026', 'D027', 'D028', 'D029', 'D030',
+                  'D031', 'D032', 'M001', 'M002', 'M003', 'M004', 'M005', 'M006', 'M007', 'M008', 'M009', 'M010',
+                  'M011', 'M012', 'M013', 'M014', 'M015', 'M016', 'M017', 'M018', 'M019', 'M020', 'Bathing',
+                  'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Housekeeping', 'Leave_Hom', 'Meal_Preparation',
+                  'Other_Activity', 'Personal_Hygiene', 'Relax', 'Sleeping_Not_in_Bed', 'Sleeping_in_Bed',
+                  'Take_Medicine', 'Work']
 # define the standalone discriminator model
 def define_discriminator(in_shape=(384, 48), n_classes=14):
     # weight initialization
@@ -147,7 +153,7 @@ def define_gan(g_model, d_model):
 
 # load images
 def load_real_samples():
-    df1 = pd.read_csv('data/binaryCasas/processed/b1Train.csv',skiprows=1)
+    df1 = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
     df2 = pd.read_csv('data/binaryCasas/processed/b2Train.csv', skiprows=1)
     df3 = pd.read_csv('data/binaryCasas/processed/b3Train.csv', skiprows=1)
     df = pd.concat([df1, df2, df3])
@@ -299,12 +305,7 @@ def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=5, n_batch=
 def write_synthetic_to_csv(x, i):
     with open('results/synthetic_data.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
-        header = ['Time', 'Signal', 'D021', 'D022', 'D023', 'D024', 'D025', 'D026', 'D027', 'D028', 'D029', 'D030',
-                  'D031', 'D032', 'M001', 'M002', 'M003', 'M004', 'M005', 'M006', 'M007', 'M008', 'M009', 'M010',
-                  'M011', 'M012', 'M013', 'M014', 'M015', 'M016', 'M017', 'M018', 'M019', 'M020', 'Bathing',
-                  'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Housekeeping', 'Leave_Hom', 'Meal_Preparation',
-                  'Other_Activity', 'Personal_Hygiene', 'Relax', 'Sleeping_Not_in_Bed', 'Sleeping_in_Bed',
-                  'Take_Medicine', 'Work']
+
         # start with (96, 384, 48) to (96*384, 48):
         arr = einops.rearrange(x, 'h w i -> (h w) i')
         # write the header
@@ -360,9 +361,17 @@ def main():
         plt.show()
 
     else:
-        #df = pd.read_csv('data/binaryCasas/processed/b1Train.csv')
-        #print(g.grangers_causation_matrix(df, variables=df.columns))
-        df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
+        # REAL GRANGER CAUSALITY
+        df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+        #temp = df.to_numpy()
+        #a = np.where(temp == 0, 0.00001, temp)
+        #b = np.where(a == 1, 0.99, a)
+        #df = pd.DataFrame(b.astype('float'), columns=header)
+        print(g.grangers_causation_matrix(df, variables=df.columns))
+        print("\n\n\t_______________\n\n")
+
+        # SYNTHETIC GRANGER CAUSALITY
+        df1 = pd.read_csv('synthetic-data/synthetic_data.csv', skiprows=1)
         print(g.grangers_causation_matrix(df1, variables=df1.columns))
 
 
