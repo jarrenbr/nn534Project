@@ -50,8 +50,8 @@ class wgan(keras.Model):
         self.critic.save(criticFilePath)
 
     def compile(self, c_optimizer=defaults.optimizer(), g_optimizer=defaults.optimizer(),
-                c_loss_fn=critic_loss, g_loss_fn=generator_loss):
-        super(wgan, self).compile()
+                c_loss_fn=critic_loss, g_loss_fn=generator_loss, *args, **kwargs):
+        super(wgan, self).compile(*args, **kwargs)
         self.c_optimizer = c_optimizer
         self.gOptimizer = g_optimizer
         self.c_loss_fn = c_loss_fn

@@ -18,7 +18,7 @@ GEN_FILE = KM_FOLDER + GEN_NAME
 NTIMESTEPS = 16
 NOISE_DIM = defaults.NOISE_DIM
 BATCH_SIZE = defaults.BATCH_SIZE
-NEPOCHS = 10 if gv.DEBUG else 2
+NEPOCHS = 2 if gv.DEBUG else 5
 NPREV_EPOCHS_DONE = 0
 
 def get_discriminator(nTimesteps=NTIMESTEPS)->keras.Model:
@@ -76,7 +76,7 @@ def get_generator(noiseDim=NOISE_DIM) -> keras.models.Model:
     return model
 
 def common_loss():
-    return keras.losses.BinaryCrossentropy(from_logits=True, label_smoothing=.2)
+    return keras.losses.BinaryCrossentropy(from_logits=True, )#label_smoothing=.2)
 
 def discriminator_loss(realLogits, fakeLogits):
     lossFn = common_loss()
@@ -106,8 +106,8 @@ class gan(keras.Model):
         self.batchSize = batchSize
 
     def compile(self, dOptimizer=defaults.optimizer(), gOptimizer=defaults.optimizer(),
-                d_loss_fn=discriminator_loss, g_loss_fn=generator_loss):
-        super(gan, self).compile()
+                d_loss_fn=discriminator_loss, g_loss_fn=generator_loss, *args, **kwargs):
+        super(gan, self).compile(*args, **kwargs)
         self.dOptimizer = dOptimizer
         self.gOptimizer = gOptimizer
         self.d_loss_fn = d_loss_fn
@@ -207,6 +207,8 @@ def train_gan(baseGan, epochs=NEPOCHS):
 if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
+    # common.enable_tf_debug()
+
     # loadGan = True
     loadGan = False
     baseGan = get_gan(loadGan)
