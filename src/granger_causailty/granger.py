@@ -17,8 +17,8 @@ def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=Fals
     df = pd.DataFrame(np.zeros((len(variables), len(variables))), columns=variables, index=variables)
     for c in df.columns:
         for r in df.index:
-            print(r, c)
-            if not (c == "Housekeeping" or r == 28 or c == "Work" or r == 47):
+            print(c, r)
+            if not (c == "Housekeeping" or r == "Housekeeping" or c == "Work" or r == "Work"):
                 test_result = grangercausalitytests(data[[r, c]], maxlag=maxlag, verbose=False)
                 p_values = [round(test_result[i+1][0][test][1], 4) for i in range(maxlag)]
                 if verbose :
