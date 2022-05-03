@@ -18,7 +18,7 @@ GEN_FILE = KM_FOLDER + GEN_NAME
 NTIMESTEPS = 16
 NOISE_DIM = defaults.NOISE_DIM
 BATCH_SIZE = defaults.BATCH_SIZE
-NEPOCHS = 2 if gv.DEBUG else 15
+NEPOCHS = 2 if gv.DEBUG else 10
 NPREV_EPOCHS_DONE = 0
 
 def get_discriminator(nTimesteps=NTIMESTEPS)->keras.Model:
@@ -140,7 +140,7 @@ class gan(keras.Model):
 
     def save(self, genFilePath, criticFilePath):
         self.generator.save(genFilePath)
-        self.critic.save(criticFilePath)
+        self.discriminator.save(criticFilePath)
 
 def get_gan(loadGan=False):
     if loadGan:
