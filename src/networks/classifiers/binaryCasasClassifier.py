@@ -9,7 +9,7 @@ from processData.binaryCasasProcess import binaryCasasData as bcData, postProces
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
 from utils import common, globalVars as gv
-from networks.gans import stateFulGan as sfg, genApi
+from networks.gans import stateFulGan as sfg, betterBaseGan as bbg, genApi
 import matplotlib.pyplot as plt
 
 BATCH_SIZE = sfg.BATCH_SIZE
@@ -19,12 +19,18 @@ PATH_ASSETS = os.getcwd()
 STEPS_PER_EPOCH = 250
 
 def run():
+    print("######### No GAN #########")
     # trtr("CNN_on_real")
 
-    # loadGan = True
+    print("######### Base GAN #########")
     loadGan = False
-    gan = sfg.get_gan(loadGan)
-    gan = sfg.run_gan(gan, 10)
+    gan = bbg.get_gan(loadGan)
+    gan = bbg.train_gan(gan, 10)
+    genOut = []
+    for sampleNum in range(1000):
+        if sampleNum % 500 == 0:
+            print("On sample num {} with batch size {}".format(sampleNum, BATCH_SIZE))
+        genOut.append(genApi.get_gen_out(gan.generator, sfg.NOISE_DIM, batchSize=sfg.BATCH_SIZE))
 
     genOut = []
     for sampleNum in range(1000):
@@ -38,8 +44,28 @@ def run():
 
     x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
     print("X and Y shapes:", x.shape, y.shape)
-    print("Doing TSTR")
-    tstr(x, y, "stateful_GAN")
+    tstr(x, y, "base_GAN")
+
+    # print("######## Stateful GAN #########")
+    # loadGan = True
+    # loadGan = False
+    # gan = sfg.get_gan(loadGan)
+    # gan = sfg.run_gan(gan, 10)
+
+    # genOut = []
+    # for sampleNum in range(1000):
+    #     if sampleNum % 500 == 0:
+    #         print("On sample num {} with batch size {}".format(sampleNum, BATCH_SIZE))
+    #     genOut.append(genApi.get_gen_out(gan.generator, sfg.NOISE_DIM, batchSize=sfg.BATCH_SIZE))
+
+    # #np.ndarray in shape (samples, time steps, features)
+    # genOut = np.concatenate(genOut, axis=0)
+    # genOut = pp.gen_out_to_real_normalized(genOut)
+
+    # x,y = genOut[...,:bcNames.nFeatures], genOut[...,-1,bcNames.nFeatures:]
+    # print("X and Y shapes:", x.shape, y.shape)
+    # tstr(x, y, "stateful_GAN")
+
 
 def tstr(x, y, title): 
     allHomes = bcData.get_all_homes_as_xy_split_gen(
