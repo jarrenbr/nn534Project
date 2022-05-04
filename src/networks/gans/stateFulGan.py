@@ -191,18 +191,27 @@ def run_gan(gan, epochs=NEPOCHS):
 
     return gan
 
-if __name__ == "__main__":
+def get_synthetic_data(loadGan=True, timeStepsFactor=10):
+    #timeStepsFactor is multiplied by the number of generator time steps (n)
+    #so timeStepsFactor=10, n=16 -> 10*16 = 160 time steps on the output
+    gan = get_gan(loadGan)
+    gan = run_gan(gan)
+    genOut = genApi.get_nBatches_lstm(timeStepsFactor, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
+    genOut = postProc.gen_out_to_real_normalized(genOut.numpy())
+    return genOut
 
+if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
     # loadGan = True
     loadGan = False
-    gan = get_gan(loadGan)
-    gan = run_gan(gan)
-    genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
-    genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
+    genOut = get_synthetic_data(loadGan)
 
+    # gan = get_gan(loadGan)
+    # gan = run_gan(gan)
+    # genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
+    # genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
 
     if gv.DEBUG:
         plt.show()
