@@ -4,7 +4,7 @@ import numpy as np
 lag_order = 2 #model_fitted.k_ar
 maxlag=lag_order #becuase we got this value before. We are not suppose to add 1 to it
 test = 'ssr_chi2test'
-def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=False):
+def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=False, boolean_=True):
     """Check Granger Causality of all possible combinations of the Time series.
     The rows are the response variable, columns are predictors. The values in the table
     are the P-Values. P-Values lesser than the significance level (0.05), implies
@@ -18,7 +18,7 @@ def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=Fals
     for c in df.columns:
         for r in df.index:
             print(c, r)
-            if not (c == "Housekeeping" or r == "Housekeeping" or c == "Work" or r == "Work"):
+            if ((not (c == "Housekeeping" or r == "Housekeeping" or c == "Work" or r == "Work")) or boolean_):
                 test_result = grangercausalitytests(data[[r, c]], maxlag=maxlag, verbose=False)
                 p_values = [round(test_result[i+1][0][test][1], 4) for i in range(maxlag)]
                 if verbose:
