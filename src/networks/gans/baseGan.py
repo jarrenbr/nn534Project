@@ -333,7 +333,27 @@ def run_granger(data, data_source):
     write_granger_to_cvs(a.to_markdown(tablefmt="grid"), data_source)
 
 def main():
-    if not causality:
+    if causality:
+        # STATEFUL SYNTHETIC GRANGER CAUSALITY
+        genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
+        run_granger(genOutProc[0], 'stateful_fake1')
+        #run_granger(genOutProc[1], 'stateful_fake2')
+        #srun_granger(genOutProc[2], 'stateful_fake3')
+
+        # SYNTHETIC GRANGER CAUSALITY
+        #df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
+        #b = g.grangers_causation_matrix(df1, variables=df1.columns)
+        #write_granger_to_cvs(b.to_markdown(tablefmt="grid"), 'fake')
+
+        # REAL GRANGER CAUSALITY
+        # df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+
+        #homes = sg.get_data(batchSize=32)
+
+        #run_granger(homes[0].data.train.data, 'real_home1')
+        #run_granger(homes[1].data.train.data, 'real_home2')
+        #run_granger(homes[2].data.train.data, 'real_home3')
+    else:
         # size of the latent space
         latent_dim = 48
         # create the discriminator
@@ -351,8 +371,8 @@ def main():
         if not gv.DEBUG:
             gan_model.save(fp.folder.kmModel + "baseGan.km")
 
-        #next time
-        #gan_model = keras.models.load_model(fp.folder.kmModel + "baseGan.km")
+        # next time
+        # gan_model = keras.models.load_model(fp.folder.kmModel + "baseGan.km")
 
         blah_a = [x for x in range(len(real_data_loss))]
 
@@ -374,30 +394,6 @@ def main():
         plt.title('Graph that Shows Accuracy by Iteration')
         plt.savefig('results/Acc_Comparison.png')
         plt.show()
-
-    else:
-        # STATEFUL SYNTHETIC GRANGER CAUSALITY
-        #genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
-        #run_granger(genOutProc[0], 'stateful_fake1')
-        #run_granger(genOutProc[1], 'stateful_fake2')
-        #srun_granger(genOutProc[2], 'stateful_fake3')
-
-        # SYNTHETIC GRANGER CAUSALITY
-        #df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
-        #b = g.grangers_causation_matrix(df1, variables=df1.columns)
-        #write_granger_to_cvs(b.to_markdown(tablefmt="grid"), 'fake')
-
-        # REAL GRANGER CAUSALITY
-        # df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
-
-        homes = sg.get_data(batchSize=32)
-        homes1 = sg.get_data(batchSize=32)
-        homes2 = sg.get_data(batchSize=32)
-
-        #run_granger(homes[0].data.train.data, 'real_home1')
-        run_granger(homes1[0].data.train.data, 'real_home2')
-        run_granger(homes2[0].data.train.data, 'real_home3')
-
 
 
 if __name__ == "__main__":
