@@ -323,6 +323,15 @@ def write_granger_to_cvs(data,type):
         f.write(data)
         f.close()
 
+def run_granger(data, data_source):
+    temp = np.asarray(data)
+    temp = np.multiply(temp, 0.0000000000000000001)
+    temp = np.where(temp == 0, 0.00001, temp)
+    temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+    df = pd.DataFrame(temp, columns=header)
+    a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+    write_granger_to_cvs(a.to_markdown(tablefmt="grid"), data_source)
+
 def main():
     if not causality:
         # size of the latent space
@@ -368,30 +377,10 @@ def main():
 
     else:
         # STATEFUL SYNTHETIC GRANGER CAUSALITY
-        genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
-        genOutProc = np.asarray(genOutProc[0])
-        temp = np.multiply(genOutProc, 0.0000000000000000001)
-        temp = np.where(temp == 0, 0.00001, temp)
-        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
-        df = pd.DataFrame(temp, columns=header)
-        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'stateful_fake1')
-
-        genOutProc = np.asarray(genOutProc[1])
-        temp = np.multiply(genOutProc, 0.0000000000000000001)
-        temp = np.where(temp == 0, 0.00001, temp)
-        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
-        df = pd.DataFrame(temp, columns=header)
-        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'stateful_fake2')
-
-        genOutProc = np.asarray(genOutProc[2])
-        temp = np.multiply(genOutProc, 0.0000000000000000001)
-        temp = np.where(temp == 0, 0.00001, temp)
-        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
-        df = pd.DataFrame(temp, columns=header)
-        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'stateful_fake3')
+        #genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
+        #run_granger(genOutProc[0], 'stateful_fake1')
+        #run_granger(genOutProc[1], 'stateful_fake2')
+        #srun_granger(genOutProc[2], 'stateful_fake3')
 
         # SYNTHETIC GRANGER CAUSALITY
         #df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
@@ -400,31 +389,14 @@ def main():
 
         # REAL GRANGER CAUSALITY
         # df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+
         homes = sg.get_data(batchSize=32)
-        temp = np.asarray(homes[0].data.train.data)  # df.iloc[:, 0:934]
-        temp = np.multiply(temp, 0.0000000000000000001)
-        temp = np.where(temp == 0, 0.00001, temp)
-        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
-        df = pd.DataFrame(temp, columns=header)
-        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real_home1')
+        homes1 = sg.get_data(batchSize=32)
+        homes2 = sg.get_data(batchSize=32)
 
-        temp = np.asarray(homes[1].data.train.data)
-        temp = np.multiply(temp, 0.0000000000000000001)
-        temp = np.where(temp == 0, 0.00001, temp)
-        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
-        df = pd.DataFrame(temp, columns=header)
-        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real_home2')
-
-        temp = np.asarray(homes[2].data.train.data)
-        temp = np.multiply(temp, 0.0000000000000000001)
-        temp = np.where(temp == 0, 0.00001, temp)
-        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
-        df = pd.DataFrame(temp, columns=header)
-        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real_home3')
-
+        #run_granger(homes[0].data.train.data, 'real_home1')
+        run_granger(homes1[0].data.train.data, 'real_home2')
+        run_granger(homes2[0].data.train.data, 'real_home3')
 
 
 
