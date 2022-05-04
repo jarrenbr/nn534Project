@@ -13,18 +13,21 @@ test = 'ssr_chi2test'
     data      : pandas dataframe containing the time series
     variables : list containing names of the time series variables.
     """
-def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=False, boolean_= True):
+def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=False):
     df = pd.DataFrame(np.zeros((len(variables), len(variables))), columns=variables, index=variables)
     for c in df.columns:
         for r in df.index:
             print(c, r)
-            if ((not (c == "Signal" or r == "Signal" or c == "Work" or r == "Work")) or boolean_):
+            try:
                 test_result = grangercausalitytests(data[[r, c]], maxlag=maxlag, verbose=False)
-                p_values = [round(test_result[i+1][0][test][1], 4) for i in range(maxlag)]
+                p_values = [round(test_result[i + 1][0][test][1], 4) for i in range(maxlag)]
                 if verbose:
                     print(f'Y = {r}, X = {c}, P Values = {p_values}')
                 min_p_value = np.min(p_values)
                 df.loc[r, c] = min_p_value
+            except:
+                pass
+
     df.columns = [var + '_x' for var in variables]
     df.index = [var + '_y' for var in variables]
     return df

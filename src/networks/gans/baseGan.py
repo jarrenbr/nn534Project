@@ -329,16 +329,16 @@ def run_granger(data, data_source):
     temp = np.where(temp == 0, 0.00001, temp)
     temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
     df = pd.DataFrame(temp, columns=header)
-    a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+    a = g.grangers_causation_matrix(df, variables=df.columns)
     write_granger_to_cvs(a.to_markdown(tablefmt="grid"), data_source)
 
 def main():
     if causality:
         # STATEFUL SYNTHETIC GRANGER CAUSALITY
         genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
-        run_granger(genOutProc[0], 'stateful_fake1')
-        #run_granger(genOutProc[1], 'stateful_fake2')
-        #srun_granger(genOutProc[2], 'stateful_fake3')
+        #run_granger(genOutProc[0], 'stateful_fake1')
+        run_granger(genOutProc[1], 'stateful_fake2')
+        run_granger(genOutProc[2], 'stateful_fake3')
 
         # SYNTHETIC GRANGER CAUSALITY
         #df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
@@ -353,7 +353,11 @@ def main():
         #run_granger(homes[0].data.train.data, 'real_home1')
         #run_granger(homes[1].data.train.data, 'real_home2')
         #run_granger(homes[2].data.train.data, 'real_home3')
+
+
     else:
+
+        # RUN GAN
         # size of the latent space
         latent_dim = 48
         # create the discriminator
