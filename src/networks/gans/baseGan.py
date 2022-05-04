@@ -10,6 +10,7 @@ from keras.models import Model, Input
 from utils import globalVars as gv
 import matplotlib.pyplot as plt
 from matplotlib import pyplot
+from networks.gans import stateFulGan as sg
 import einops as einops
 from numpy import zeros
 from numpy import ones
@@ -366,22 +367,63 @@ def main():
         plt.show()
 
     else:
+        # STATEFUL SYNTHETIC GRANGER CAUSALITY
+        genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
+        genOutProc = np.asarray(genOutProc[0])
+        temp = np.multiply(genOutProc, 0.0000000000000000001)
+        temp = np.where(temp == 0, 0.00001, temp)
+        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+        df = pd.DataFrame(temp, columns=header)
+        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'stateful_fake1')
+
+        genOutProc = np.asarray(genOutProc[1])
+        temp = np.multiply(genOutProc, 0.0000000000000000001)
+        temp = np.where(temp == 0, 0.00001, temp)
+        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+        df = pd.DataFrame(temp, columns=header)
+        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'stateful_fake2')
+
+        genOutProc = np.asarray(genOutProc[2])
+        temp = np.multiply(genOutProc, 0.0000000000000000001)
+        temp = np.where(temp == 0, 0.00001, temp)
+        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+        df = pd.DataFrame(temp, columns=header)
+        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'stateful_fake3')
 
         # SYNTHETIC GRANGER CAUSALITY
-        df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
-        b = g.grangers_causation_matrix(df1, variables=df1.columns)
-        write_granger_to_cvs(b.to_markdown(tablefmt="grid"), 'fake')
-
+        #df1 = pd.read_csv('synthetic-data/synthetic_data.csv')
+        #b = g.grangers_causation_matrix(df1, variables=df1.columns)
+        #write_granger_to_cvs(b.to_markdown(tablefmt="grid"), 'fake')
 
         # REAL GRANGER CAUSALITY
-        df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
-        temp = df.iloc[:, 0:934].to_numpy()
+        # df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
+        homes = sg.get_data(batchSize=32)
+        temp = np.asarray(homes[0].data.train.data)  # df.iloc[:, 0:934]
         temp = np.multiply(temp, 0.0000000000000000001)
         temp = np.where(temp == 0, 0.00001, temp)
         temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
         df = pd.DataFrame(temp, columns=header)
         a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
-        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real')
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real_home1')
+
+        temp = np.asarray(homes[1].data.train.data)
+        temp = np.multiply(temp, 0.0000000000000000001)
+        temp = np.where(temp == 0, 0.00001, temp)
+        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+        df = pd.DataFrame(temp, columns=header)
+        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real_home2')
+
+        temp = np.asarray(homes[2].data.train.data)
+        temp = np.multiply(temp, 0.0000000000000000001)
+        temp = np.where(temp == 0, 0.00001, temp)
+        temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
+        df = pd.DataFrame(temp, columns=header)
+        a = g.grangers_causation_matrix(df, variables=df.columns, boolean_=False)
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real_home3')
 
 
 
