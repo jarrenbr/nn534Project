@@ -316,6 +316,11 @@ def write_synthetic_to_csv(x, i):
             writer.writerow(row)
         f.close()
 
+def write_granger_to_cvs(data,type):
+    with open('synthetic-data/granger_{}.md'.format(type), 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        writer.write(data)
+        f.close()
 
 def main():
     if not causality:
@@ -363,17 +368,19 @@ def main():
     else:
         # REAL GRANGER CAUSALITY
         df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
-        temp = df.iloc[:,0:934].to_numpy()
+        temp = df.iloc[:, 0:934].to_numpy()
         temp = np.multiply(temp, 0.0000000000000000001)
         temp = np.where(temp == 0, 0.00001, temp)
         temp = np.where(temp == 0.0000000000000000001, 0.99, temp)
         df = pd.DataFrame(temp, columns=header)
-        print(g.grangers_causation_matrix(df, variables=df.columns))
+        a = g.grangers_causation_matrix(df, variables=df.columns)
+        write_granger_to_cvs(a.to_markdown(tablefmt="grid"), 'real')
         print("\n\n\t_______________\n\n")
 
         # SYNTHETIC GRANGER CAUSALITY
         df1 = pd.read_csv('synthetic-data/synthetic_data.csv', skiprows=1)
-        print(g.grangers_causation_matrix(df1, variables=df1.columns))
+        b = g.grangers_causation_matrix(df1, variables=header)
+        write_granger_to_cvs(b.to_markdown(tablefmt="grid"), 'fake')
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=Fals
             if not (c == "Housekeeping" or r == "Housekeeping" or c == "Work" or r == "Work"):
                 test_result = grangercausalitytests(data[[r, c]], maxlag=maxlag, verbose=False)
                 p_values = [round(test_result[i+1][0][test][1], 4) for i in range(maxlag)]
-                if verbose :
+                if verbose:
                     print(f'Y = {r}, X = {c}, P Values = {p_values}')
                 min_p_value = np.min(p_values)
                 df.loc[r, c] = min_p_value
