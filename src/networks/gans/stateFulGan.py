@@ -220,8 +220,6 @@ if __name__ == "__main__":
     # genOut = get_synthetic_data(loadGan, timeStepsFactor=100, nEpochs=0)
 
     gan = get_gan(loadGan)
-    nn_diagram(gan.generator)
-    # nn_diagram(gan.critic)
     # gan = run_gan(gan)
     # genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
     # genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
@@ -229,7 +227,7 @@ if __name__ == "__main__":
     if gv.DEBUG:
         plt.show()
 
-    from networks.classifiers import binaryCasasClassifier as bcc
-    classifier = bcc.basic_cnn()
-    nn_diagram(classifier)
+    # from networks.classifiers import binaryCasasClassifier as bcc
+    # classifier = bcc.basic_cnn()
+    # nn_diagram(classifier)
     exit()

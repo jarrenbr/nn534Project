@@ -112,8 +112,9 @@ def trtr(title):
     print(test_result_2[1])
 
 def basic_cnn() -> keras.models.Model:
-    inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features))) #should be 48 channels
-    x = cBlocks.conv_block(inputLayer, 24, defaults.leaky_relu(),) #8 timesteps
+    inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features)))#should be 48 channels
+    x = l.Dense(24, keras.activations.sigmoid)(inputLayer)
+    x = cBlocks.conv_block(x, 24, defaults.leaky_relu(),) #8 timesteps
     x = cBlocks.conv_block(x, 15, defaults.leaky_relu()) #4 timesteps
     x = cBlocks.conv_block(x, 11, defaults.leaky_relu()) #2 timesteps
     x = cBlocks.conv_block(x, len(bcNames.allActivities), activation=keras.activations.softmax)
