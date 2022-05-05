@@ -336,7 +336,7 @@ def main():
     if causality:
         # STATEFUL SYNTHETIC GRANGER CAUSALITY
         genOutProc = sg.get_synthetic_data(loadGan=True, timeStepsFactor=5000, nEpochs=0)
-        #run_granger(genOutProc[0], 'stateful_fake1')
+        run_granger(genOutProc[0], 'stateful_fake1')
         run_granger(genOutProc[1], 'stateful_fake2')
         run_granger(genOutProc[2], 'stateful_fake3')
 
@@ -348,11 +348,11 @@ def main():
         # REAL GRANGER CAUSALITY
         # df = pd.read_csv('data/binaryCasas/processed/b1Train.csv', skiprows=1)
 
-        #homes = sg.get_data(batchSize=32)
+        homes = sg.get_data(batchSize=32)
 
-        #run_granger(homes[0].data.train.data, 'real_home1')
-        #run_granger(homes[1].data.train.data, 'real_home2')
-        #run_granger(homes[2].data.train.data, 'real_home3')
+        run_granger(homes[0].data.train.data, 'real_home1')
+        run_granger(homes[1].data.train.data, 'real_home2')
+        run_granger(homes[2].data.train.data, 'real_home3')
 
 
     else:
