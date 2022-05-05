@@ -12,6 +12,7 @@ from processData.binaryCasasProcess import binaryCasasData as bcData, postProces
 
 
 MODEL_DIR = fp.folder.kmModel + "wgan/"
+IMG_FOLDER = fp.folder.img + "statefulGan/"
 # def classifier_naming
 
 LSTM_GENERATOR_NAME = "LSTM_Generator"
@@ -55,6 +56,15 @@ def get_conv_generator() -> keras.models.Model:
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
+
+def nn_diagram(model, imgFile=None):
+    if imgFile is None:
+        imgFile = IMG_FOLDER + model.name + ".png"
+    keras.utils.plot_model(model, to_file=imgFile,
+                              show_shapes=True,
+                              show_layer_activations=True,
+                              show_dtype=True,
+                              show_layer_names=True)
 
 def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
     # goal: 16 X 48
@@ -191,12 +201,12 @@ def run_gan(gan, epochs=NEPOCHS):
 
     return gan
 
-def get_synthetic_data(loadGan=True, timeStepsFactor=10, nEpochs=NEPOCHS):
+def get_synthetic_data(loadGan=True, timeStepsFactor=100, nEpochs=NEPOCHS):
     #timeStepsFactor is multiplied by the number of generator time steps (n)
     #so timeStepsFactor=10, n=16 -> 10*16 = 160 time steps on the output
     gan = get_gan(loadGan)
     if nEpochs:
-        gan = run_gan(gan, epochs=NEPOCHS)
+        gan = run_gan(gan, epochs=nEpochs)
     genOut = genApi.get_nBatches_lstm(timeStepsFactor, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
     genOut = postProc.gen_out_to_real_normalized(genOut.numpy())
     return genOut
@@ -205,15 +215,21 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    # loadGan = True
-    loadGan = False
-    genOut = get_synthetic_data(loadGan, nEpochs=1)
+    loadGan = True
+    # loadGan = False
+    # genOut = get_synthetic_data(loadGan, timeStepsFactor=100, nEpochs=0)
 
-    # gan = get_gan(loadGan)
+    gan = get_gan(loadGan)
+    nn_diagram(gan.generator)
+    # nn_diagram(gan.critic)
     # gan = run_gan(gan)
     # genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
     # genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
 
     if gv.DEBUG:
         plt.show()
+
+    from networks.classifiers import binaryCasasClassifier as bcc
+    classifier = bcc.basic_cnn()
+    nn_diagram(classifier)
     exit()
