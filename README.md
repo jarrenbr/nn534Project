@@ -9,7 +9,7 @@ Module install for mac:
 pip3 install -r requirement.txt
 ```
 
-## Task List
+<!-- ## Task List
 - [x] Proposal (Jocelyn, Jarren, Max) 
   - [x] Citation update in Latex Proposal
 - [x] Initialize project (Max, Jarren)
@@ -62,7 +62,7 @@ pip3 install -r requirement.txt
   - [ ] Feature distributions
     - [ ] Histogram
   - [ ] Violin plot of time differentials
-  - [ ] Distribution analysis
+  - [ ] Distribution analysis -->
 
 # Standards
 
