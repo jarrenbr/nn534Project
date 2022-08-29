@@ -4,7 +4,7 @@ GAN on [CASAS](http://casas.wsu.edu/datasets/).
 ## Setup
 Python version: 3.9
 
-Module install for mac:
+Module install:
 ```bash
 pip3 install -r requirement.txt
 ```
