@@ -126,5 +126,6 @@ def basic_cnn() -> keras.models.Model:
 
 if __name__ == "__main__":
     if gv.DEBUG:
-        common.enable_tf_debug()
-    run()
+        # common.enable_tf_debug()
+        pass
+    trtr("trtr")
