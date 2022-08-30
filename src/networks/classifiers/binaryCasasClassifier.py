@@ -108,8 +108,9 @@ def trtr(title):
     #the dependent variable is the class label (1 variable with 14 options; the y part of (x, y) tuple)
     #I'd begin by considering a unique color for each of the 14 class labels.
     #tips: graph with Matplotlib, Seaborn; organize data with NumPy and Pandas
+    #tsne can be used to visualize high-dimensional data in a few dimensions
 
-    return 
+    return
 
 
 
