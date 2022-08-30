@@ -94,22 +94,41 @@ def trtr(title):
     model = basic_cnn()
     history = model.fit(allHomes[0].data.train.gen, epochs=EPOCHS, steps_per_epoch = STEPS_PER_EPOCH,
                         validation_data=allHomes[0].data.test.gen, validation_steps=defaults.VALIDATION_STEPS)
-    test_result_0 = model.evaluate(allHomes[0].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
-    test_result_1 = model.evaluate(allHomes[1].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
-    test_result_2 = model.evaluate(allHomes[2].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
-    print(history.history)
-    plt.figure()
-    plt.title(title)
-    plt.plot(history.history['accuracy'], label='accuracy')
-    plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.ylim([0, 1])
-    plt.legend(loc='lower right')
-    plt.savefig(PATH_ASSETS + "/img/accuracy/" + title + ".png")
-    print(test_result_0[1])
-    print(test_result_1[1])
-    print(test_result_2[1])
+
+    vals = []
+    preds = []
+    for i in range(1000):
+        # tuple with (x, y) or (features, target). Target is the class, one-hot encoded
+        vals.append(next(allHomes[0].data.train.gen))
+        #here is one minibatch time-series of predictions
+        #shape: (sample, time step, features)
+        preds.append(model(vals[-1][0]))
+
+    #now find a graph to visualize this: independent variables are the predictions (not the features) this is 14 variables, one prediction for each class
+    #the dependent variable is the class label (1 variable with 14 options; the y part of (x, y) tuple)
+    #I'd begin by considering a unique color for each of the 14 class labels.
+    #tips: graph with Matplotlib, Seaborn; organize data with NumPy and Pandas
+
+    return 
+
+
+
+    # test_result_0 = model.evaluate(allHomes[0].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
+    # test_result_1 = model.evaluate(allHomes[1].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
+    # test_result_2 = model.evaluate(allHomes[2].data.test.gen, steps=defaults.VALIDATION_STEPS, verbose=2)
+    # print(history.history)
+    # plt.figure()
+    # plt.title(title)
+    # plt.plot(history.history['accuracy'], label='accuracy')
+    # plt.plot(history.history['val_accuracy'], label = 'val_accuracy')
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Accuracy')
+    # plt.ylim([0, 1])
+    # plt.legend(loc='lower right')
+    # plt.savefig(PATH_ASSETS + "/img/accuracy/" + title + ".png")
+    # print(test_result_0[1])
+    # print(test_result_1[1])
+    # print(test_result_2[1])
 
 def basic_cnn() -> keras.models.Model:
     inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features)))#should be 48 channels
