@@ -124,6 +124,21 @@ def basic_cnn() -> keras.models.Model:
                   optimizer = defaults.optimizer(), metrics = ['accuracy'])
     return model
 
+def rnn() -> keras.models.Model:
+    inputLayer = keras.Input(shape=(N_TIME_STEPS, len(bcNames.features)))#should be 48 channels
+    x = l.GRU(300)(inputLayer)
+    x = l.Dropout(.2)(x)
+    x = l.Dense(200)(x)
+    x = l.Dropout(.2)(x)
+    x = l.Dense(100)(x)
+    x = l.Dense(100, activation='relu')(x)
+    x = l.Dropout(.2)(x)
+    x = l.Dense(len(bcNames.allActivities), activation = keras.activations.softmax)(x)
+    model = keras.models.Model(inputLayer, x, name="RNN")
+    model.compile(loss = keras.losses.CategoricalCrossentropy(),
+                  optimizer = defaults.optimizer(), metrics = [keras.metrics.CategoricalAccuracy])
+    return model
+
 if __name__ == "__main__":
     if gv.DEBUG:
         # common.enable_tf_debug()
