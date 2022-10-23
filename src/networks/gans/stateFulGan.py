@@ -29,7 +29,7 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 1000
 
-NEPOCHS = 2 if gv.DEBUG else 10
+NEPOCHS = 2 if gv.DEBUG else 2
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = NEPOCHS
 
@@ -216,6 +216,8 @@ def train_on_house(gan, house):
         windows,
         (-1, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
+    # callBacks = [keras.callbacks.EarlyStopping(patience=2)]
+
     gan.fit(windows, batch_size=BATCH_SIZE, shuffle=False,)
     gan.reset_states()
 
@@ -270,8 +272,9 @@ def get_synthetic_data(loadGan=True, timeStepsFactor=100, nEpochs=NEPOCHS):
     return genOut
 
 if __name__ == "__main__":
+    common.tf_np_behavior()
     if gv.DEBUG:
-        # common.enable_tf_debug()
+        common.enable_tf_debug()
         # common.enable_tf_debug(eager=False)
         pass
 
@@ -283,6 +286,7 @@ if __name__ == "__main__":
     gan = run_gan(gan)
     genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
     genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
+    print(genOutProc)
 
     if gv.DEBUG:
         plt.show()
@@ -290,4 +294,4 @@ if __name__ == "__main__":
     # from networks.classifiers import binaryCasasClassifier as bcc
     # classifier = bcc.basic_cnn()
     # nn_diagram(classifier)
-    exit()
+    pass
