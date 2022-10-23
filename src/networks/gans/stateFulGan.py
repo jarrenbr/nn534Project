@@ -57,6 +57,58 @@ def get_conv_generator() -> keras.models.Model:
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
+def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
+    #128 X 48
+    inputLayer = keras.Input(
+        batch_shape=(batchSize, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
+
+    lstmForward = layers.LSTM(
+            bcNames.nGanFeatures,
+            dropout=defaults.DROPOUT_PORTION,
+            stateful=True,
+            return_sequences=False,
+            name="lstmForward"
+        )
+    xForward = lstmForward(inputLayer)
+    lstmBackward = layers.LSTM(
+            bcNames.nGanFeatures,
+            dropout=defaults.DROPOUT_PORTION,
+            stateful=True,
+            return_sequences=False,
+            go_backwards=True,
+            name="lstmBackward"
+        )
+    xBackward = lstmBackward(inputLayer)
+
+    # lstms = layers.Bidirectional(
+    #     layers.LSTM(
+    #         bcNames.nGanFeatures,
+    #         dropout=defaults.DROPOUT_PORTION,
+    #         stateful=True,
+    #         return_sequences=False
+    #     )
+    # )(inputLayer)
+    x = layers.Concatenate(axis=-1)((xForward, xBackward))
+
+    nDenseUnits = 250
+
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(nDenseUnits)(x)
+    x = layers.Flatten()(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(nDenseUnits)(x)
+    x = layers.LeakyReLU()(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(nDenseUnits)(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(1)(x)
+
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
+    # model.compile(loss = keras.losses.CategoricalCrossentropy(),
+    #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
+    return model, lstmForward, lstmBackward
+
 def nn_diagram(model, imgFile=None):
     if imgFile is None:
         imgFile = IMG_FOLDER + model.name + ".png"
@@ -169,11 +221,11 @@ def get_gan(loadGan=False):
         critic = keras.models.load_model(CRITIC_FILE)
     else:
         gen = get_lstm_generator()
-        critic = get_critic()
+        critic, lstmForward, lstmBackward = get_lstm_critic()
 
     gan = wgan.wgan(
         critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
-        batchSize=BATCH_SIZE,
+        batchSize=BATCH_SIZE, criticLstms=(lstmForward, lstmBackward)
     )
     gan.compile()
     return gan
@@ -213,16 +265,18 @@ def get_synthetic_data(loadGan=True, timeStepsFactor=100, nEpochs=NEPOCHS):
 
 if __name__ == "__main__":
     if gv.DEBUG:
-        common.enable_tf_debug()
+        # common.enable_tf_debug()
+        # common.enable_tf_debug(eager=False)
+        pass
 
-    loadGan = True
-    # loadGan = False
+    # loadGan = True
+    loadGan = False
     # genOut = get_synthetic_data(loadGan, timeStepsFactor=100, nEpochs=0)
 
     gan = get_gan(loadGan)
-    # gan = run_gan(gan)
-    # genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
-    # genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
+    gan = run_gan(gan)
+    genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
+    genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
 
     if gv.DEBUG:
         plt.show()

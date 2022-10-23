@@ -31,6 +31,7 @@ class wgan(keras.Model):
         batchSize = defaults.BATCH_SIZE,
         criticExtraSteps=1,
         gpWeight=10.0,
+        criticLstms:tuple=None,
     ):
         super(wgan, self).__init__()
         self.critic = critic
@@ -43,7 +44,56 @@ class wgan(keras.Model):
         self.batchSize = batchSize
         self.cSteps = criticExtraSteps
         self.gpWeight = gpWeight
+        self.criticLstms = criticLstms
+        self.cStatesForReal = self.init_state_backups()
+        self.cStatesForFake = self.init_state_backups()
+        self.cStatesForGenLoss = self.init_state_backups()
+
         self.fullHistory = tf.keras.callbacks.History()
+
+    def init_state_backups(self):
+        backup=[]
+        for i in range(len(self.criticLstms)):
+            hState = self.criticLstms[i].states[0]
+            hCopy = tf.Variable(
+                initial_value=hState, dtype=hState.dtype
+            )
+            cState = self.criticLstms[i].states[1]
+            cCopy = tf.Variable(
+                initial_value=cState, dtype=cState.dtype
+            )
+            backup.append([hCopy, cCopy])
+        return backup
+    def backup_fake_lstm(self):
+        for i in range(len(self.criticLstms)):
+            self.cStatesForFake[i][0].assign(self.criticLstms[i].states[0])
+            self.cStatesForFake[i][1].assign(self.criticLstms[i].states[1])
+    def backup_genLoss_lstm(self):
+        for i in range(len(self.criticLstms)):
+            self.cStatesForGenLoss[i][0].assign(self.criticLstms[i].states[0])
+            self.cStatesForGenLoss[i][1].assign(self.criticLstms[i].states[1])
+    def backup_real_lstm(self):
+        for i in range(len(self.criticLstms)):
+            self.cStatesForReal[i][0].assign(self.criticLstms[i].states[0])
+            self.cStatesForReal[i][1].assign(self.criticLstms[i].states[1])
+
+    def repair_fake_lstm(self):
+        for i in range(len(self.criticLstms)):
+            # self.criticLstms[i].reset_states(self.cStatesForFake[i])
+            self.criticLstms[i].states[0].assign(self.cStatesForFake[i][0])
+            self.criticLstms[i].states[1].assign(self.cStatesForFake[i][1])
+
+    def repair_genLoss_lstm(self):
+        for i in range(len(self.criticLstms)):
+            # self.criticLstms[i].reset_states(self.cStatesForGenLoss[i])
+            self.criticLstms[i].states[0].assign(self.cStatesForGenLoss[i][0])
+            self.criticLstms[i].states[1].assign(self.cStatesForGenLoss[i][1])
+
+    def repair_real_lstm(self):
+        for i in range(len(self.criticLstms)):
+            # self.criticLstms[i].reset_states(self.cStatesForReal[i])
+            self.criticLstms[i].states[0].assign(self.cStatesForReal[i][0])
+            self.criticLstms[i].states[1].assign(self.cStatesForReal[i][1])
 
     def save(self, genFilePath, criticFilePath):
         self.generator.save(genFilePath)
@@ -103,6 +153,8 @@ class wgan(keras.Model):
 
         #cannot recreate the synthetic data multiple times else it will confuse the generator (in theory)
         # Train the generator
+        self.repair_genLoss_lstm()
+
         with tf.GradientTape() as tape:
             # Generate fake images using the generator
             fakeImgs = self.get_gen_out_for_critic()
@@ -117,11 +169,19 @@ class wgan(keras.Model):
         self.gOptimizer.apply_gradients(
             zip(genGradient, self.generator.trainable_variables)
         )
+        self.backup_genLoss_lstm()
+
 
         for i in range(self.cSteps):
             with tf.GradientTape() as tape:
+
+                self.repair_fake_lstm()
                 fakeLogits = self.critic(fakeImgs, training=True)
+                self.backup_fake_lstm()
+
+                self.repair_real_lstm()
                 realLogits = self.critic(realImgs, training=True)
+                self.backup_real_lstm()
 
                 # Calculate the critic loss using the fake and real image logits
                 cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
@@ -186,7 +246,10 @@ class wgan(keras.Model):
 
     def reset_states(self):
         self.generator.reset_states()
-        # self.critic.reset_states()
+        self.critic.reset_states()
+        self.cStatesForReal = self.init_state_backups()
+        self.cStatesForFake = self.init_state_backups()
+        self.cStatesForGenLoss = self.init_state_backups()
 
 
 if __name__ == "__main__":
