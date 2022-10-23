@@ -58,6 +58,8 @@ def get_conv_generator() -> keras.models.Model:
     return model
 
 def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
+    def kernel_regularizer():
+        return keras.regularizers.L2(0.01)
     #128 X 48
     inputLayer = keras.Input(
         batch_shape=(batchSize, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
@@ -68,7 +70,9 @@ def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
             dropout=defaults.DROPOUT_PORTION,
             stateful=True,
             return_sequences=False,
-            name="lstmForward"
+            name="lstmForward",
+            kernel_regularizer=kernel_regularizer(),
+            recurrent_regularizer = kernel_regularizer(),
         )
     xForward = lstmForward(inputLayer)
     lstmBackward = layers.LSTM(
@@ -77,7 +81,9 @@ def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
             stateful=True,
             return_sequences=False,
             go_backwards=True,
-            name="lstmBackward"
+            name="lstmBackward",
+            kernel_regularizer=kernel_regularizer(),
+            recurrent_regularizer = kernel_regularizer(),
         )
     xBackward = lstmBackward(inputLayer)
 
@@ -94,15 +100,15 @@ def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
     nDenseUnits = 250
 
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(nDenseUnits)(x)
+    x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
     x = layers.Flatten()(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(nDenseUnits)(x)
+    x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(nDenseUnits)(x)
+    x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(1)(x)
+    x = layers.Dense(1, kernel_regularizer=kernel_regularizer())(x)
 
     model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),

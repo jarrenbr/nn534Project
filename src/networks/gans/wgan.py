@@ -29,7 +29,7 @@ class wgan(keras.Model):
         nCriticTimesteps,
         nGenTimesteps,
         batchSize = defaults.BATCH_SIZE,
-        criticExtraSteps=1,
+        criticExtraSteps=5,
         gpWeight=10.0,
         criticLstms:tuple=None,
     ):
@@ -116,27 +116,27 @@ class wgan(keras.Model):
             )
         return tf.concat(fakeImgs, axis=1)
 
-    def gradient_penalty(self, realImgs, fakeImgs):
-        """Calculates the gradient penalty.
-        This loss is calculated on an interpolated image
-        and added to the critic loss.
-        """
-        # Get the interpolated image
-        alpha = tf.random.normal([self.batchSize, 1, 1], 0.0, 1.0)
-        diff = fakeImgs - realImgs
-        interpolated = realImgs + alpha * diff
-
-        with tf.GradientTape() as gpTape:
-            gpTape.watch(interpolated)
-            # 1. Get the critic output for this interpolated image.
-            pred = self.critic(interpolated, training=True)
-
-        # 2. Calculate the gradients w.r.t to this interpolated image.
-        grads = gpTape.gradient(pred, [interpolated])[0]
-        # 3. Calculate the norm of the gradients.
-        norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2]))
-        gp = tf.reduce_mean((norm - 1.0) ** 2)
-        return gp
+    # def gradient_penalty(self, realImgs, fakeImgs):
+    #     """Calculates the gradient penalty.
+    #     This loss is calculated on an interpolated image
+    #     and added to the critic loss.
+    #     """
+    #     # Get the interpolated image
+    #     alpha = tf.random.normal([self.batchSize, 1, 1], 0.0, 1.0)
+    #     diff = fakeImgs - realImgs
+    #     interpolated = realImgs + alpha * diff
+    #
+    #     with tf.GradientTape() as gpTape:
+    #         gpTape.watch(interpolated)
+    #         # 1. Get the critic output for this interpolated image.
+    #         pred = self.critic(interpolated, training=True)
+    #
+    #     # 2. Calculate the gradients w.r.t to this interpolated image.
+    #     grads = gpTape.gradient(pred, [interpolated])[0]
+    #     # 3. Calculate the norm of the gradients.
+    #     norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2]))
+    #     gp = tf.reduce_mean((norm - 1.0) ** 2)
+    #     return gp
 
     def train_step(self, realImgs,):
         if isinstance(realImgs, tuple):
@@ -186,9 +186,10 @@ class wgan(keras.Model):
                 # Calculate the critic loss using the fake and real image logits
                 cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
                 # Calculate the gradient penalty
-                gp = self.gradient_penalty(realImgs, fakeImgs)
+                # gp = self.gradient_penalty(realImgs, fakeImgs)
                 # Add the gradient penalty to the original critic loss
-                cLoss = cCost + gp * self.gpWeight
+                # cLoss = cCost + gp * self.gpWeight
+                cLoss = cCost
 
             # Get the gradients w.r.t the critic loss
             cGradient = tape.gradient(cLoss, self.critic.trainable_variables)
