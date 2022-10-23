@@ -65,41 +65,35 @@ def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
         batch_shape=(batchSize, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
 
-    lstmForward = layers.LSTM(
-            bcNames.nGanFeatures,
-            dropout=defaults.DROPOUT_PORTION,
-            stateful=True,
-            return_sequences=False,
-            name="lstmForward",
-            kernel_regularizer=kernel_regularizer(),
-            recurrent_regularizer = kernel_regularizer(),
-        )
-    xForward = lstmForward(inputLayer)
-    lstmBackward = layers.LSTM(
-            bcNames.nGanFeatures,
-            dropout=defaults.DROPOUT_PORTION,
-            stateful=True,
-            return_sequences=False,
-            go_backwards=True,
-            name="lstmBackward",
-            kernel_regularizer=kernel_regularizer(),
-            recurrent_regularizer = kernel_regularizer(),
-        )
-    xBackward = lstmBackward(inputLayer)
+    inputContext = keras.Input(
+        batch_shape=(batchSize, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
 
-    # lstms = layers.Bidirectional(
-    #     layers.LSTM(
-    #         bcNames.nGanFeatures,
-    #         dropout=defaults.DROPOUT_PORTION,
-    #         stateful=True,
-    #         return_sequences=False
-    #     )
-    # )(inputLayer)
-    x = layers.Concatenate(axis=-1)((xForward, xBackward))
+    inputCombined = layers.Multiply(name="combineContext")([inputLayer, inputContext])
+    inputCombined = layers.Concatenate(axis=-1, name="ConcatContextedInputWithPeek")((inputCombined, inputLayer))
+
+    scoreLstms = layers.Bidirectional(layers.LSTM(
+            bcNames.nGanFeatures,
+            return_sequences=False,
+            name="scoreLstms",
+        )
+    )(inputCombined)
+
+    contextLstms = layers.Bidirectional(layers.LSTM(
+            bcNames.nGanFeatures,
+            return_sequences=True,
+            name="contextLstms",
+        )
+    )(inputCombined)
+
+    contextLstms = layers.BatchNormalization()(contextLstms)
+
+    contextLstms = layers.Dense(bcNames.nGanFeatures, activation=keras.activations.sigmoid, name="contextOut"
+                                )(contextLstms)
 
     nDenseUnits = 250
 
-    x = layers.BatchNormalization()(x)
+    x = layers.BatchNormalization()(scoreLstms)
     x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
     x = layers.Flatten()(x)
     x = layers.BatchNormalization()(x)
@@ -110,10 +104,10 @@ def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
     x = layers.BatchNormalization()(x)
     x = layers.Dense(1, kernel_regularizer=kernel_regularizer())(x)
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
+    model = keras.models.Model(inputs=[inputLayer, inputContext], outputs=[x, contextLstms], name= CRITIC_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
-    return model, lstmForward, lstmBackward
+    return model
 
 def nn_diagram(model, imgFile=None):
     if imgFile is None:
@@ -229,11 +223,11 @@ def get_gan(loadGan=False):
         critic = keras.models.load_model(CRITIC_FILE)
     else:
         gen = get_lstm_generator()
-        critic, lstmForward, lstmBackward = get_lstm_critic()
+        critic = get_lstm_critic()
 
     gan = wgan.wgan(
         critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
-        batchSize=BATCH_SIZE, criticLstms=(lstmForward, lstmBackward)
+        batchSize=BATCH_SIZE, 
     )
     gan.compile()
     return gan

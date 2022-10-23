@@ -24,15 +24,14 @@ class wgan(keras.Model):
 
     def __init__(
         self,
-        critic,
-        generator,
+        critic:keras.Model,
+        generator:keras.Model,
         latentDim,
         nCriticTimesteps,
         nGenTimesteps,
         batchSize = defaults.BATCH_SIZE,
         criticExtraSteps=5,
         gpWeight=10.0,
-        criticLstms:tuple=None,
     ):
         super(wgan, self).__init__()
         self.critic = critic
@@ -48,56 +47,18 @@ class wgan(keras.Model):
         self.batchSize = batchSize
         self.cSteps = criticExtraSteps
         self.gpWeight = gpWeight
-        self.criticLstms = criticLstms
-        self.cStatesForReal = self.init_state_backups()
-        self.cStatesForFake = self.init_state_backups()
-        self.cStatesForGenLoss = self.init_state_backups()
+
+        self.realContext = self.init_state_backups()
+        self.fakeContext = self.init_state_backups()
 
         self.fullHistory = tf.keras.callbacks.History()
 
     def init_state_backups(self):
-        backup=[]
-        for i in range(len(self.criticLstms)):
-            hState = self.criticLstms[i].states[0]
-            hCopy = tf.Variable(
-                initial_value=hState, dtype=hState.dtype
-            )
-            cState = self.criticLstms[i].states[1]
-            cCopy = tf.Variable(
-                initial_value=cState, dtype=cState.dtype
-            )
-            backup.append([hCopy, cCopy])
+        backup=tf.ones(
+            shape=self.critic.output_shape[1],
+            dtype=self.critic.layers[-1].dtype
+        )
         return backup
-    def backup_fake_lstm(self):
-        for i in range(len(self.criticLstms)):
-            self.cStatesForFake[i][0].assign(self.criticLstms[i].states[0])
-            self.cStatesForFake[i][1].assign(self.criticLstms[i].states[1])
-    def backup_genLoss_lstm(self):
-        for i in range(len(self.criticLstms)):
-            self.cStatesForGenLoss[i][0].assign(self.criticLstms[i].states[0])
-            self.cStatesForGenLoss[i][1].assign(self.criticLstms[i].states[1])
-    def backup_real_lstm(self):
-        for i in range(len(self.criticLstms)):
-            self.cStatesForReal[i][0].assign(self.criticLstms[i].states[0])
-            self.cStatesForReal[i][1].assign(self.criticLstms[i].states[1])
-
-    def repair_fake_lstm(self):
-        for i in range(len(self.criticLstms)):
-            # self.criticLstms[i].reset_states(self.cStatesForFake[i])
-            self.criticLstms[i].states[0].assign(self.cStatesForFake[i][0])
-            self.criticLstms[i].states[1].assign(self.cStatesForFake[i][1])
-
-    def repair_genLoss_lstm(self):
-        for i in range(len(self.criticLstms)):
-            # self.criticLstms[i].reset_states(self.cStatesForGenLoss[i])
-            self.criticLstms[i].states[0].assign(self.cStatesForGenLoss[i][0])
-            self.criticLstms[i].states[1].assign(self.cStatesForGenLoss[i][1])
-
-    def repair_real_lstm(self):
-        for i in range(len(self.criticLstms)):
-            # self.criticLstms[i].reset_states(self.cStatesForReal[i])
-            self.criticLstms[i].states[0].assign(self.cStatesForReal[i][0])
-            self.criticLstms[i].states[1].assign(self.cStatesForReal[i][1])
 
     def save(self, genFilePath, criticFilePath):
         self.generator.save(genFilePath)
@@ -129,7 +90,7 @@ class wgan(keras.Model):
         alpha = tf.random.normal([self.batchSize, 1, 1], 0.0, 1.0)
         diff = fakeImgs - realImgs
         interpolated = realImgs + alpha * diff
-        # self.critic.reset_states()
+
         with tf.GradientTape() as gpTape:
             gpTape.watch(interpolated)
             # 1. Get the critic output for this interpolated image.
@@ -157,13 +118,11 @@ class wgan(keras.Model):
 
         #cannot recreate the synthetic data multiple times else it will confuse the generator (in theory)
         # Train the generator
-        self.repair_genLoss_lstm()
-        self.criticGenLoss = clone_model(self.critic)
         with tf.GradientTape() as tape:
             # Generate fake images using the generator
             fakeImgs = self.get_gen_out_for_critic()
             # Get the critic logits for fake images
-            genImgLogits = self.criticGenLoss(fakeImgs, training=True)
+            genImgLogits, _ = self.criticGenLoss([fakeImgs,self.fakeContext], training=True)
             # Calculate the generator loss
             gLoss = self.g_loss_fn(genImgLogits)
 
@@ -178,17 +137,8 @@ class wgan(keras.Model):
 
         for i in range(self.cSteps):
             with tf.GradientTape() as tape:
-
-                self.repair_fake_lstm()
-                fakeLogits = self.criticFake(fakeImgs, training=True)
-                if i == self.cSteps - 1:
-                    self.backup_fake_lstm()
-
-                self.repair_real_lstm()
-                realLogits = self.criticReal(realImgs, training=True)
-                if i == self.cSteps - 1:
-                    self.backup_real_lstm()
-
+                fakeLogits, fakeContext = self.criticFake([fakeImgs, self.fakeContext], training=True)
+                realLogits, realContext = self.criticReal([realImgs, self.realContext], training=True)
 
                 # Calculate the critic loss using the fake and real image logits
                 cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
@@ -196,7 +146,6 @@ class wgan(keras.Model):
                 gp = self.gradient_penalty(realImgs, fakeImgs)
                 # Add the gradient penalty to the original critic loss
                 cLoss = cCost + gp * self.gpWeight
-                # cLoss = cCost
 
             # Get the gradients w.r.t the critic loss
             cGradient = tape.gradient(cLoss, self.critic.trainable_variables)
@@ -204,8 +153,9 @@ class wgan(keras.Model):
             self.c_optimizer.apply_gradients(
                 zip(cGradient, self.critic.trainable_variables)
             )
-            self.criticFake = clone_model(self.critic)
-            self.criticReal = clone_model(self.critic)
+
+        self.fakeContext = fakeContext
+        self.realContext = realContext
 
         return {wgan.criticLossKey: cLoss, wgan.genLossKey: gLoss}
 
