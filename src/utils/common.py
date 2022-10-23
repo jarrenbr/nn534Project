@@ -94,7 +94,7 @@ def divide_min(dividend, divisor, minimum, castType=int):
 def disable_gpu():
     import os
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-    os.environ["CUDA_VISIBLE_DEVICES"] = ""
+    os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 #if cuda is working with tensorflow, this sets gpu0 to be visible
 def enable_gpu():

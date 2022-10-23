@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+
 from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
@@ -10,6 +11,7 @@ from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
 from processData.binaryCasasProcess import binaryCasasData as bcData, postProcess as postProc
 
+# common.disable_gpu()
 
 MODEL_DIR = fp.folder.kmModel + "wgan/"
 IMG_FOLDER = fp.folder.img + "statefulGan/"
@@ -57,6 +59,8 @@ def get_conv_generator() -> keras.models.Model:
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
+#can't save output in graph mode during train step. issue for passing context
+#for assigning states, the gradient tape was messed up.
 def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
     def kernel_regularizer():
         return keras.regularizers.L2(0.01)
@@ -227,7 +231,7 @@ def get_gan(loadGan=False):
 
     gan = wgan.wgan(
         critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
-        batchSize=BATCH_SIZE, 
+        batchSize=BATCH_SIZE,
     )
     gan.compile()
     return gan
