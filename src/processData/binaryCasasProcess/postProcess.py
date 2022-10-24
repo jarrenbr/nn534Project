@@ -34,11 +34,15 @@ def enforce_alt_signal_each_sensor(arr3d:np.ndarray,)-> np.ndarray:
     return arr3d
 
 
-def gen_out_to_real_normalized(genOut:np.ndarray) -> np.ndarray:
+def gen_out_one_hot_sensor(genOut:np.ndarray)->np.ndarray:
     #one hot sensor
     genOut[..., bcNames.pivots.sensors.start:bcNames.pivots.sensors.stop] =\
         to_one_hot(genOut[..., bcNames.pivots.sensors.start:bcNames.pivots.sensors.stop])
+    return genOut
 
+def gen_out_to_real_normalized(genOut:np.ndarray) -> np.ndarray:
+    #one hot sensor
+    genOut = gen_out_one_hot_sensor(genOut)
     #one hot activity
     genOut[..., bcNames.pivots.activities.start:] = to_one_hot(genOut[..., bcNames.pivots.activities.start:])
 

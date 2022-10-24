@@ -27,9 +27,9 @@ GENERATOR_TIME_STEPS = 16
 CRITIC_TIME_STEPS = 128
 NOISE_DIM = 128
 BATCH_SIZE = 32
-STEPS_PER_EPOCH = 2 if gv.DEBUG else 200
+STEPS_PER_EPOCH = 2 if gv.DEBUG else 250
 
-NEPOCHS = 2 if gv.DEBUG else 10
+NEPOCHS = 2 if gv.DEBUG else 2
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = NEPOCHS
 
@@ -126,35 +126,45 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
     x = layers.Bidirectional(
         layers.LSTM(
             bcNames.nGanFeatures,
-            dropout=defaults.DROPOUT_PORTION,
             stateful=True,
             return_sequences=True
         )
     )(x)
-    time = layers.Dense(len(bcNames.ProcessedTime.order), keras.activations.sigmoid)(x)
-    signal = layers.Dense(1, keras.activations.sigmoid)(x)
-    sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
-    labels = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
-    x = layers.Concatenate()([time, signal, sensors, labels])
+    x = layers.BatchNormalization()(x)
+    time = layers.Conv1D(len(bcNames.ProcessedTime.order), kernel_size=4, padding='causal',
+                         activation=keras.activations.hard_sigmoid)(x)
+    # time = layers.Dense(len(bcNames.ProcessedTime.order), keras.activations.hard_sigmoid)(x)
+    sensors = layers.Conv1D(len(bcNames.allSensors), kernel_size=3, padding='causal',
+                         activation=keras.activations.softmax)(x)
+    # sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
+
+
+    x = layers.Concatenate()([time, sensors])
 
     model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
-    # model.compile(loss = keras.losses.CategoricalCrossentropy(),
-    #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
 def get_critic() -> keras.models.Model:
     #128 X 48
+    # timeInput = keras.Input(
+    #     shape=(CRITIC_TIME_STEPS, len(bcNames.ProcessedTime.order))
+    # )
+    # sensorInput = keras.Input(
+    #     shape=(CRITIC_TIME_STEPS, len(bcNames.allSensors))
+    # )
+
     inputLayer = keras.Input(
         shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
     x = layers.GaussianNoise(.025)(inputLayer)
     x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(x)
 
+    padding='causal'
     args = [
-        cBlocks.conv_args(nFilters=100, kernelSize=8, strides=4),
-        cBlocks.conv_args(nFilters=150, kernelSize=4),
-        cBlocks.conv_args(nFilters=150, kernelSize=4),
-        cBlocks.conv_args(nFilters=160, kernelSize=4),
+        cBlocks.conv_args(nFilters=100, kernelSize=8, strides=4, padding=padding),
+        cBlocks.conv_args(nFilters=150, kernelSize=4, padding=padding),
+        cBlocks.conv_args(nFilters=150, kernelSize=4, padding=padding),
+        cBlocks.conv_args(nFilters=160, kernelSize=4, padding=padding),
         ]
     # x = layers.Conv1D(**args[0].kwargs)(x)
     # x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
@@ -165,8 +175,6 @@ def get_critic() -> keras.models.Model:
     x = layers.Dense(1)(x)
 
     model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
-    # model.compile(loss = keras.losses.CategoricalCrossentropy(),
-    #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
 def get_data_gen(batchSize = BATCH_SIZE):
@@ -278,9 +286,18 @@ if __name__ == "__main__":
 
     gan = get_gan(loadGan)
     gan = run_gan(gan)
+
+    gan.generator.reset_states()
     genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
-    genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
-    print(genOutProc)
+    genOutProc = postProc.gen_out_one_hot_sensor(genOut.numpy())
+    # genOutProc = postProc.enforce_alt_signal_each_sensor(genOutProc)
+
+    gan.generator.reset_states()
+    genOut2 = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
+    genOutProc2 = postProc.gen_out_one_hot_sensor(genOut2.numpy())
+    # genOutProc2 = postProc.enforce_alt_signal_each_sensor(genOutProc2)
+
+    # print(genOutProc)
 
     if gv.DEBUG:
         plt.show()

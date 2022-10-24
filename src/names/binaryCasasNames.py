@@ -44,7 +44,8 @@ class rawLabels:
 rl = rawLabels
 
 
-features = ProcessedTime.order + [rl.signal] + allSensors
+# features = ProcessedTime.order + [rl.signal] + allSensors
+features = ProcessedTime.order + allSensors
 nFeatures = len(features)
 
 labels = allActivities
@@ -52,7 +53,7 @@ nLabels = len(allActivities)
 
 allBinaryColumns = [rl.signal] + allSensors + allActivities
 
-correctOrder = features + labels
+correctOrder = features# + labels
 ganFeatures = correctOrder
 nGanFeatures = len(ganFeatures)
 
@@ -64,7 +65,7 @@ class start_stop:
 @dataclass(frozen=True)
 class pivots:
     time = start_stop(0,len(ProcessedTime.order))
-    signal = start_stop(time.stop, time.stop + 1)
+    signal = start_stop(time.stop, 0)
     sensors = start_stop(signal.stop, len(allSensors))
     activities = start_stop(sensors.stop, len(allActivities))
     features = start_stop(0, activities.stop)
