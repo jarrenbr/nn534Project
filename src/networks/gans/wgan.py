@@ -28,7 +28,7 @@ class wgan(keras.Model):
         generator:keras.Model,
         latentDim,
         batchSize = defaults.BATCH_SIZE,
-        criticExtraSteps=1,
+        criticExtraSteps=2,
         gpWeight=10.0,
     ):
         super(wgan, self).__init__()

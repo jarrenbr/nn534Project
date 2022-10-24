@@ -29,7 +29,7 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 2 if gv.DEBUG else 250
 
-NEPOCHS = 2 if gv.DEBUG else 2
+NEPOCHS = 2 if gv.DEBUG else 50
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = NEPOCHS
 
@@ -58,7 +58,8 @@ def get_conv_generator() -> keras.models.Model:
     return model
 
 #can't save output in graph mode during train step. issue for passing context
-#for assigning states, the gradient tape was messed up.
+#for assigning states, the gradient tape was messed up--maybe due to using lstm
+#using lstm even without state gave a huge gradient penalty
 def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
     def kernel_regularizer():
         return keras.regularizers.L2(0.01)
@@ -131,50 +132,67 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
         )
     )(x)
     x = layers.BatchNormalization()(x)
-    time = layers.Conv1D(len(bcNames.ProcessedTime.order), kernel_size=4, padding='causal',
-                         activation=keras.activations.hard_sigmoid)(x)
-    # time = layers.Dense(len(bcNames.ProcessedTime.order), keras.activations.hard_sigmoid)(x)
+    time = layers.Dense(len(bcNames.ProcessedTime.order), keras.activations.hard_sigmoid)(x)
+
+    doyTrig = layers.Conv1D(2, kernel_size=4, padding='causal', activation=keras.activations.hard_sigmoid)(time)
+    timeDayTrig = layers.Conv1D(2, kernel_size=4, padding='causal', activation=keras.activations.hard_sigmoid)(time)
+    timeDif = layers.Conv1D(1, kernel_size=4, padding='causal', activation=keras.activations.sigmoid)(time)
+
     sensors = layers.Conv1D(len(bcNames.allSensors), kernel_size=3, padding='causal',
                          activation=keras.activations.softmax)(x)
     # sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
 
 
-    x = layers.Concatenate()([time, sensors])
+    timeOut = layers.Concatenate()([timeDif, doyTrig, timeDayTrig])
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
+    model = keras.models.Model(inputs=[inputLayer], outputs=[timeOut, sensors], name=LSTM_GENERATOR_NAME)
     return model
 
 def get_critic() -> keras.models.Model:
-    #128 X 48
-    # timeInput = keras.Input(
-    #     shape=(CRITIC_TIME_STEPS, len(bcNames.ProcessedTime.order))
-    # )
-    # sensorInput = keras.Input(
-    #     shape=(CRITIC_TIME_STEPS, len(bcNames.allSensors))
-    # )
-
-    inputLayer = keras.Input(
-        shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    # 128 time steps
+    timeInput = keras.Input(
+        shape=(CRITIC_TIME_STEPS, len(bcNames.ProcessedTime.order))
     )
-    x = layers.GaussianNoise(.025)(inputLayer)
+    sensorInput = keras.Input(
+        shape=(CRITIC_TIME_STEPS, len(bcNames.allSensors))
+    )
+
+    sensors = layers.GaussianNoise(.025)(sensorInput)
+    x = layers.Concatenate()((timeInput, sensors))
     x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(x)
 
     padding='causal'
     args = [
         cBlocks.conv_args(nFilters=100, kernelSize=8, strides=4, padding=padding),
         cBlocks.conv_args(nFilters=150, kernelSize=4, padding=padding),
-        cBlocks.conv_args(nFilters=150, kernelSize=4, padding=padding),
-        cBlocks.conv_args(nFilters=160, kernelSize=4, padding=padding),
+        cBlocks.conv_args(nFilters=150, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=160, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=160, kernelSize=2, padding=padding),
         ]
     # x = layers.Conv1D(**args[0].kwargs)(x)
     # x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
     for arg in args:
         x = layers.Conv1D(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+
+    argsTime = [
+        cBlocks.conv_args(nFilters=5, kernelSize=8, strides=4, padding=padding),
+        cBlocks.conv_args(nFilters=10, kernelSize=4, padding=padding),
+        cBlocks.conv_args(nFilters=20, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=30, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=30, kernelSize=2, padding=padding),
+    ]
+    timex = layers.Conv1D(**argsTime[0].kwargs)(timeInput)
+    timex = cBlocks.block(timex, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+    for arg in argsTime[1:]:
+        timex = layers.Conv1D(**arg.kwargs)(timex)
+        timex = cBlocks.block(timex, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+
+    x = layers.Concatenate()((timex, x))
     x = layers.Flatten()(x)
     x = layers.Dense(1)(x)
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
+    model = keras.models.Model(inputs=[timeInput, sensorInput], outputs=[x], name= CRITIC_NAME)
     return model
 
 def get_data_gen(batchSize = BATCH_SIZE):
