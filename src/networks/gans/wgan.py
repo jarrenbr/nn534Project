@@ -144,9 +144,10 @@ class wgan(keras.Model):
 
         #cannot recreate the synthetic data multiple times else it will confuse the generator (in theory)
         # Train the generator
-        self.generator.reset_states()
+        if tf.random.uniform([]) < 1/3:
+            self.generator.reset_states()
         with tf.GradientTape() as tape:
-            fakeImgs = self.get_gen_out_for_critic_multiout()
+            fakeImgs = self.get_gen_out_for_critic()
             genImgLogits = self.critic(fakeImgs, training=True)
             gLoss = self.g_loss_fn(genImgLogits)
 
@@ -163,7 +164,7 @@ class wgan(keras.Model):
                 realLogits = self.critic(realImgs, training=True)
 
                 cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
-                gp = self.gradient_penalty_multi_out(realImgs, fakeImgs)
+                gp = self.gradient_penalty(realImgs, fakeImgs)
                 cLoss = cCost + gp * self.gpWeight
 
             cGradient = tape.gradient(cLoss, self.critic.trainable_variables)

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from utils import filePaths as fp, globalVars as gv, common
 from utils.common import ml_data
+from networks import kerasSubclasses as kSubs
 from networks.gans import genApi, wgan
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
@@ -103,7 +104,7 @@ def nn_diagram(model, imgFile=None):
                               show_dtype=True,
                               show_layer_names=True)
 
-def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
+def get_lstm_generator_multi_out(batchSize=BATCH_SIZE) -> keras.models.Model:
     # goal: 16 X 48
     inputLayer = keras.Input(
         batch_shape=(batchSize, 1, NOISE_DIM,)
@@ -147,8 +148,53 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
 
     model = keras.models.Model(inputs=[inputLayer], outputs=[timeOut, sensors], name=LSTM_GENERATOR_NAME)
     return model
+def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
+    # goal: 16 X 48
+    inputLayer = keras.Input(
+        batch_shape=(batchSize, 1, NOISE_DIM,)
+    )
 
-def get_critic() -> keras.models.Model:
+    nFilters = 100
+    padding = 'causal'
+
+    args = [
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=4,),
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=2,),
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=2,),
+    ]
+
+    x = layers.Conv1DTranspose(**args[0].kwargs)(inputLayer)
+    x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
+
+    for arg in args[1:]:
+        x = layers.Conv1DTranspose(**arg.kwargs)(x)
+        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
+
+    x = layers.Bidirectional(
+        layers.LSTM(
+            bcNames.nGanFeatures,
+            stateful=True,
+            return_sequences=True
+        )
+    )(x)
+    x = layers.BatchNormalization()(x)
+    time = layers.Dense(len(bcNames.ProcessedTime.order), keras.activations.hard_sigmoid)(x)
+
+    doyTrig = layers.Conv1D(2, kernel_size=4, padding=padding, activation=keras.activations.hard_sigmoid)(time)
+    timeDayTrig = layers.Conv1D(2, kernel_size=4, padding=padding, activation=keras.activations.hard_sigmoid)(time)
+    timeDif = layers.Conv1D(1, kernel_size=4, padding=padding, activation=keras.activations.sigmoid)(time)
+
+    sensors = layers.Conv1D(len(bcNames.allSensors), kernel_size=3, padding=padding,
+                         activation=keras.activations.softmax)(x)
+    # sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
+
+    x = layers.Concatenate()([timeDif, doyTrig, timeDayTrig, sensors])
+
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
+    return model
+
+#uncontrollable giant losses for critic and gen with multi-in and multi-out
+def get_critic_multi_in() -> keras.models.Model:
     # 128 time steps
     timeInput = keras.Input(
         shape=(CRITIC_TIME_STEPS, len(bcNames.ProcessedTime.order))
@@ -193,6 +239,51 @@ def get_critic() -> keras.models.Model:
     x = layers.Dense(1)(x)
 
     model = keras.models.Model(inputs=[timeInput, sensorInput], outputs=[x], name= CRITIC_NAME)
+    return model
+
+def get_critic() -> keras.models.Model:
+    # 128 time steps
+    inputLayer = keras.Input(
+        shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
+    times = kSubs.SliceInnerMost(bcNames.pivots.time.start, bcNames.pivots.time.stop)(inputLayer)
+    sensors = kSubs.SliceInnerMost(bcNames.pivots.sensors.start, bcNames.pivots.sensors.stop)(inputLayer)
+    sensors = layers.GaussianNoise(.1)(sensors)
+    x = layers.Concatenate(axis=-1)((times, sensors))
+    x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(x)
+
+    padding='causal'
+    args = [
+        cBlocks.conv_args(nFilters=100, kernelSize=8, strides=4, padding=padding),
+        cBlocks.conv_args(nFilters=150, kernelSize=4, padding=padding),
+        cBlocks.conv_args(nFilters=150, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=160, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=160, kernelSize=2, padding=padding),
+        ]
+    # x = layers.Conv1D(**args[0].kwargs)(x)
+    # x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True, )
+    for arg in args:
+        x = layers.Conv1D(**arg.kwargs)(x)
+        x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+
+    argsTime = [
+        cBlocks.conv_args(nFilters=5, kernelSize=8, strides=4, padding=padding),
+        cBlocks.conv_args(nFilters=10, kernelSize=4, padding=padding),
+        cBlocks.conv_args(nFilters=20, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=30, kernelSize=3, padding=padding),
+        cBlocks.conv_args(nFilters=30, kernelSize=2, padding=padding),
+    ]
+    timex = layers.Conv1D(**argsTime[0].kwargs)(times)
+    timex = cBlocks.block(timex, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+    for arg in argsTime[1:]:
+        timex = layers.Conv1D(**arg.kwargs)(timex)
+        timex = cBlocks.block(timex, activation=defaults.leaky_relu(), use_bn=False, use_dropout=True)
+
+    x = layers.Concatenate()((timex, x))
+    x = layers.Flatten()(x)
+    x = layers.Dense(1)(x)
+
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
     return model
 
 def get_data_gen(batchSize = BATCH_SIZE):
@@ -263,10 +354,7 @@ def run_gan(gan, epochs=NEPOCHS):
         def data_gen():
             while True:
                 idx = np.random.randint(0, trainData.shape[0], BATCH_SIZE)
-                yield [
-                    trainData[idx, ..., :bcNames.pivots.time.stop],
-                    trainData[idx, ..., bcNames.pivots.sensors.start:]
-                    ]
+                yield trainData[idx]
 
         dataGen = data_gen()
 
@@ -307,7 +395,8 @@ if __name__ == "__main__":
     # genOut = get_synthetic_data(loadGan, timeStepsFactor=100, nEpochs=0)
 
     gan = get_gan(loadGan)
-    gan = run_gan(gan)
+    if not loadGan:
+        gan = run_gan(gan)
 
     gan.generator.reset_states()
     genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
