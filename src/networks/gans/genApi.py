@@ -21,6 +21,7 @@ def get_nBatches_lstm(nBatches, gen, resetStates=True, noiseDim=defaults.NOISE_D
     genOut = [[] for _ in range(batchSize)]
     for batchNum in range(nBatches):
         oneOut = get_gen_out(gen=gen, noiseDim=noiseDim, batchSize=batchSize, **kwargs)
+        oneOut = tf.concat(oneOut, axis=-1)
         for i, arr in enumerate(oneOut):
             genOut[i].append(arr)
 

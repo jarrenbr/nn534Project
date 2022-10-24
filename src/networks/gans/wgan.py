@@ -26,6 +26,8 @@ class wgan(keras.Model):
         self,
         critic:keras.Model,
         generator:keras.Model,
+        cTimesteps,
+        gTimesteps,
         latentDim,
         batchSize = defaults.BATCH_SIZE,
         criticExtraSteps=2,
@@ -36,12 +38,8 @@ class wgan(keras.Model):
         self.generator = generator
         self.latent_dim = latentDim
 
-        assert self.critic.input_shape[-1] == self.generator.output_shape[-1]
-
-        nCriticTimesteps = self.critic.input_shape[-2]
-        nGenTimesteps = self.generator.output_shape[-2]
-        assert nCriticTimesteps % nGenTimesteps == 0
-        self.genToCriticFactor = nCriticTimesteps // nGenTimesteps
+        assert cTimesteps % gTimesteps == 0
+        self.genToCriticFactor = cTimesteps // gTimesteps
 
         self.batchSize = batchSize
         self.cSteps = criticExtraSteps
@@ -63,6 +61,17 @@ class wgan(keras.Model):
         self.g_loss_fn = g_loss_fn
 
 
+    @tf.function
+    def get_gen_out_for_critic_multiout(self):
+        nOutputs = len(self.generator.output_shape)
+        fakeImgs = [[] for _ in range(nOutputs)]
+        for i in range(self.genToCriticFactor):
+            sample = genApi.get_gen_out(self.generator, training=True, batchSize=self.batchSize)
+            for j in range(nOutputs):
+                fakeImgs[j].append(sample[j])
+        for i in range(nOutputs):
+            fakeImgs[i] = tf.concat(fakeImgs[i], axis=1)
+        return fakeImgs
     def get_gen_out_for_critic(self):
         fakeImgs = []
         for _ in range(self.genToCriticFactor):
@@ -94,10 +103,35 @@ class wgan(keras.Model):
         gp = tf.reduce_mean((norm - 1.0) ** 2)
         return gp
 
-    # @tf.function
+    @tf.function
+    def gradient_penalty_multi_out(self, realImgs, fakeImgs):
+        """Calculates the gradient penalty.
+        This loss is calculated on an interpolated image
+        and added to the critic loss.
+        """
+        # Get the interpolated image
+        alpha = tf.random.normal([self.batchSize, 1, 1], 0.0, 1.0)
+        interpolateds = []
+        for i in range(len(realImgs)):
+            diff = fakeImgs[i] - realImgs[i]
+            interpolateds.append(realImgs[i] + alpha * diff)
+
+        with tf.GradientTape() as gpTape:
+            gpTape.watch(interpolateds)
+            # 1. Get the critic output for this interpolated image.
+            pred = self.critic(interpolateds, training=True)
+
+        # 2. Calculate the gradients w.r.t to this interpolated image.
+        grads = gpTape.gradient(pred, interpolateds)[0]
+        # 3. Calculate the norm of the gradients.
+        norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2]))
+        gp = tf.reduce_mean((norm - 1.0) ** 2)
+        return gp
+
+    @tf.function
     def train_step(self, realImgs,):
-        if isinstance(realImgs, tuple):
-            realImgs = realImgs[0]
+        # if isinstance(realImgs, tuple):
+        #     realImgs = realImgs[0]
 
         # For each batch, we are going to perform the
         # following steps as laid out in the original pfaper:
@@ -112,7 +146,7 @@ class wgan(keras.Model):
         # Train the generator
         self.generator.reset_states()
         with tf.GradientTape() as tape:
-            fakeImgs = self.get_gen_out_for_critic()
+            fakeImgs = self.get_gen_out_for_critic_multiout()
             genImgLogits = self.critic(fakeImgs, training=True)
             gLoss = self.g_loss_fn(genImgLogits)
 
@@ -129,7 +163,7 @@ class wgan(keras.Model):
                 realLogits = self.critic(realImgs, training=True)
 
                 cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
-                gp = self.gradient_penalty(realImgs, fakeImgs)
+                gp = self.gradient_penalty_multi_out(realImgs, fakeImgs)
                 cLoss = cCost + gp * self.gpWeight
 
             cGradient = tape.gradient(cLoss, self.critic.trainable_variables)
@@ -182,7 +216,8 @@ class wgan(keras.Model):
 
     def call(self, input):
         #only for keras' validation
-        return self.critic(input)
+        return
+        # return self.critic(input)
 
     def reset_states(self):
         self.generator.reset_states()

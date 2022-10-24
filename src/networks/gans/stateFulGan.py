@@ -29,7 +29,7 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 2 if gv.DEBUG else 250
 
-NEPOCHS = 2 if gv.DEBUG else 50
+NEPOCHS = 2 if gv.DEBUG else 10
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = NEPOCHS
 
@@ -213,7 +213,8 @@ def get_gan(loadGan=False):
         critic = get_critic()
 
     gan = wgan.wgan(
-        critic, gen, defaults.NOISE_DIM, batchSize=BATCH_SIZE,
+        critic, gen, cTimesteps=CRITIC_TIME_STEPS, gTimesteps=GENERATOR_TIME_STEPS, latentDim=defaults.NOISE_DIM,
+        batchSize=BATCH_SIZE,
     )
     gan.compile()
     return gan
@@ -262,7 +263,10 @@ def run_gan(gan, epochs=NEPOCHS):
         def data_gen():
             while True:
                 idx = np.random.randint(0, trainData.shape[0], BATCH_SIZE)
-                yield trainData[idx]
+                yield [
+                    trainData[idx, ..., :bcNames.pivots.time.stop],
+                    trainData[idx, ..., bcNames.pivots.sensors.start:]
+                    ]
 
         dataGen = data_gen()
 
