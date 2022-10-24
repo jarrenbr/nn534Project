@@ -27,7 +27,7 @@ GENERATOR_TIME_STEPS = 16
 CRITIC_TIME_STEPS = 128
 NOISE_DIM = 128
 BATCH_SIZE = 32
-STEPS_PER_EPOCH = 1000
+STEPS_PER_EPOCH = 2 if gv.DEBUG else 200
 
 NEPOCHS = 2 if gv.DEBUG else 10
 NPREV_EPOCHS_DONE = 0
@@ -231,7 +231,16 @@ def run_gan(gan, epochs=NEPOCHS):
             for house in data[::-1]:
                 gan = train_on_house_individually(gan, house)
     else:
-        gan.fit(data[0].data.train, batch_size=BATCH_SIZE, shuffle=True, epochs=NEPOCHS)
+        trainData = data[0].data.train
+        np.random.shuffle(trainData)
+        def data_gen():
+            while True:
+                idx = np.random.randint(0, trainData.shape[0], BATCH_SIZE)
+                yield trainData[idx]
+
+        dataGen = data_gen()
+
+        gan.fit(dataGen, batch_size=BATCH_SIZE, shuffle=False, epochs=NEPOCHS, steps_per_epoch=STEPS_PER_EPOCH)
         gan.reset_states()
 
     if not gv.DEBUG:
