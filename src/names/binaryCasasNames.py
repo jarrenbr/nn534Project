@@ -21,6 +21,17 @@ allActivities = ['Bathing', 'Bed_Toilet_Transition', 'Eating', 'Enter_Home', 'Ho
 
 sensColToOrd = { val : i for i, val in enumerate(allSensors)}
 
+class ProcessedTime:
+    _sin = "Sin"
+    _cos = "Cos"
+    _doy = "doy"
+    _timeOfDay = "timeFromMidnight"
+    doySin = _doy + _sin
+    doyCos = _doy + _cos
+    timeDaySin = _timeOfDay + _sin
+    timeDayCos = _timeOfDay + _cos
+    timeDif = "timeDif"
+    order = [timeDif, doySin, doyCos, timeDaySin, timeDayCos]
 
 @dataclass(frozen=True)
 class rawLabels:
@@ -33,7 +44,7 @@ class rawLabels:
 rl = rawLabels
 
 
-features = [rl.time, rl.signal] + allSensors
+features = ProcessedTime.order + [rl.signal] + allSensors
 nFeatures = len(features)
 
 labels = allActivities
@@ -52,8 +63,8 @@ class start_stop:
 
 @dataclass(frozen=True)
 class pivots:
-    time = start_stop(0,1)
-    signal = start_stop(time.stop, 1)
+    time = start_stop(0,len(ProcessedTime.order))
+    signal = start_stop(time.stop, time.stop + 1)
     sensors = start_stop(signal.stop, len(allSensors))
     activities = start_stop(sensors.stop, len(allActivities))
     features = start_stop(0, activities.stop)

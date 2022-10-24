@@ -1,17 +1,15 @@
 import numpy as np
 import tensorflow as tf
-
 from tensorflow import keras
 from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 
 from utils import filePaths as fp, globalVars as gv, common
+from utils.common import ml_data
 from networks.gans import genApi, wgan
 from names import binaryCasasNames as bcNames
 from networks import commonBlocks as cBlocks, defaults
 from processData.binaryCasasProcess import binaryCasasData as bcData, postProcess as postProc
-
-# common.disable_gpu()
 
 MODEL_DIR = fp.folder.kmModel + "wgan/"
 IMG_FOLDER = fp.folder.img + "statefulGan/"
@@ -31,7 +29,7 @@ NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 1000
 
-NEPOCHS = 2 if gv.DEBUG else 2
+NEPOCHS = 2 if gv.DEBUG else 10
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = NEPOCHS
 
@@ -68,47 +66,29 @@ def get_lstm_critic(batchSize=BATCH_SIZE) -> tuple:
     inputLayer = keras.Input(
         batch_shape=(batchSize, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
     )
-
-    inputContext = keras.Input(
-        batch_shape=(batchSize, CRITIC_TIME_STEPS, bcNames.nGanFeatures)
-    )
-
-    inputCombined = layers.Multiply(name="combineContext")([inputLayer, inputContext])
-    inputCombined = layers.Concatenate(axis=-1, name="ConcatContextedInputWithPeek")((inputCombined, inputLayer))
-
-    scoreLstms = layers.Bidirectional(layers.LSTM(
+    x = layers.Bidirectional(layers.LSTM(
             bcNames.nGanFeatures,
             return_sequences=False,
-            name="scoreLstms",
+            name="criticLstm",
         )
-    )(inputCombined)
+    )(inputLayer)
 
-    contextLstms = layers.Bidirectional(layers.LSTM(
-            bcNames.nGanFeatures,
-            return_sequences=True,
-            name="contextLstms",
-        )
-    )(inputCombined)
+    x = layers.BatchNormalization()(x)
 
-    contextLstms = layers.BatchNormalization()(contextLstms)
-
-    contextLstms = layers.Dense(bcNames.nGanFeatures, activation=keras.activations.sigmoid, name="contextOut"
-                                )(contextLstms)
 
     nDenseUnits = 250
 
-    x = layers.BatchNormalization()(scoreLstms)
-    x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
+    x = layers.Dense(nDenseUnits,)(x)
     x = layers.Flatten()(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
+    x = layers.Dense(nDenseUnits,)(x)
     x = layers.LeakyReLU()(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(nDenseUnits, kernel_regularizer=kernel_regularizer())(x)
+    x = layers.Dense(nDenseUnits,)(x)
     x = layers.BatchNormalization()(x)
-    x = layers.Dense(1, kernel_regularizer=kernel_regularizer())(x)
+    x = layers.Dense(1,)(x)
 
-    model = keras.models.Model(inputs=[inputLayer, inputContext], outputs=[x, contextLstms], name= CRITIC_NAME)
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name= CRITIC_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
@@ -151,8 +131,7 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
             return_sequences=True
         )
     )(x)
-    # time = layers.Dense(1, keras.activations.hard_sigmoid)(x)
-    time = layers.Dense(1, keras.activations.sigmoid)(x)
+    time = layers.Dense(len(bcNames.ProcessedTime.order), keras.activations.sigmoid)(x)
     signal = layers.Dense(1, keras.activations.sigmoid)(x)
     sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
     labels = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
@@ -190,11 +169,30 @@ def get_critic() -> keras.models.Model:
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
 
-def get_data(batchSize = BATCH_SIZE):
+def get_data_gen(batchSize = BATCH_SIZE):
     return bcData.get_all_homes_as_xy_combined_gen(
         batchSize, CRITIC_TIME_STEPS, firstN=gv.DATA_AMT)
 
-def train_on_house(gan, house):
+def get_data():
+    data = bcData.get_all_homes_xy_combined(nTimesteps=CRITIC_TIME_STEPS, aggregated=True)
+    return data
+
+
+def get_gan(loadGan=False):
+    if loadGan:
+        gen = keras.models.load_model(LSTM_GENERATOR_FILE)
+        critic = keras.models.load_model(CRITIC_FILE)
+    else:
+        gen = get_lstm_generator()
+        critic = get_critic()
+
+    gan = wgan.wgan(
+        critic, gen, defaults.NOISE_DIM, batchSize=BATCH_SIZE,
+    )
+    gan.compile()
+    return gan
+
+def train_on_house_individually(gan, house):
     windows = house.data.train.data
 
     nOmitted = (windows.shape[0] % (BATCH_SIZE * CRITIC_TIME_STEPS))
@@ -220,33 +218,21 @@ def train_on_house(gan, house):
     gan.reset_states()
 
     return gan
-
-def get_gan(loadGan=False):
-    if loadGan:
-        gen = keras.models.load_model(LSTM_GENERATOR_FILE)
-        critic = keras.models.load_model(CRITIC_FILE)
-    else:
-        gen = get_lstm_generator()
-        critic = get_lstm_critic()
-
-    gan = wgan.wgan(
-        critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
-        batchSize=BATCH_SIZE,
-    )
-    gan.compile()
-    return gan
-
 def run_gan(gan, epochs=NEPOCHS):
     data = get_data()
 
-    for epoch in range(epochs):
-        printMsg ="Epoch {}/{}".format(epoch, epochs)
-        if NPREV_EPOCHS_DONE:
-            printMsg += " ({} done prior)".format(NPREV_EPOCHS_DONE)
-        print(printMsg)
+    if len(data) > 1:
+        for epoch in range(epochs):
+            printMsg ="Epoch {}/{}".format(epoch, epochs)
+            if NPREV_EPOCHS_DONE:
+                printMsg += " ({} done prior)".format(NPREV_EPOCHS_DONE)
+            print(printMsg)
 
-        for house in data[::-1]:
-            gan = train_on_house(gan, house)
+            for house in data[::-1]:
+                gan = train_on_house_individually(gan, house)
+    else:
+        gan.fit(data[0].data.train, batch_size=BATCH_SIZE, shuffle=True, epochs=NEPOCHS)
+        gan.reset_states()
 
     if not gv.DEBUG:
         gan.save(genFilePath=LSTM_GENERATOR_FILE, criticFilePath=CRITIC_FILE)
@@ -270,7 +256,8 @@ def get_synthetic_data(loadGan=True, timeStepsFactor=100, nEpochs=NEPOCHS):
     return genOut
 
 if __name__ == "__main__":
-    common.tf_np_behavior()
+    # data = get_data()
+    # common.tf_np_behavior()
     if gv.DEBUG:
         common.enable_tf_debug()
         # common.enable_tf_debug(eager=False)

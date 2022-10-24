@@ -27,41 +27,28 @@ class wgan(keras.Model):
         critic:keras.Model,
         generator:keras.Model,
         latentDim,
-        nCriticTimesteps,
-        nGenTimesteps,
         batchSize = defaults.BATCH_SIZE,
-        criticExtraSteps=5,
+        criticExtraSteps=1,
         gpWeight=10.0,
     ):
         super(wgan, self).__init__()
         self.critic = critic
-        self.criticGenLoss = clone_model(self.critic)
-        self.criticFake = clone_model(self.critic)
-        self.criticReal = clone_model(self.critic)
         self.generator = generator
         self.latent_dim = latentDim
 
+        assert self.critic.input_shape[-1] == self.generator.output_shape[-1]
+
+        nCriticTimesteps = self.critic.input_shape[-2]
+        nGenTimesteps = self.generator.output_shape[-2]
         assert nCriticTimesteps % nGenTimesteps == 0
-        self.genToCriticFactor = int(nCriticTimesteps / nGenTimesteps)
+        self.genToCriticFactor = nCriticTimesteps // nGenTimesteps
 
         self.batchSize = batchSize
         self.cSteps = criticExtraSteps
         self.gpWeight = gpWeight
 
-        self.realContext = self.init_state_backups()
-        self.fakeContext = self.init_state_backups()
-
         self.fullHistory = tf.keras.callbacks.History()
 
-
-    def init_state_backups(self):
-        backup=tf.random.uniform(
-            shape=self.critic.output_shape[1],
-            minval=.4,
-            maxval=.6,
-            dtype=self.critic.layers[-1].dtype
-        )
-        return backup
 
     def save(self, genFilePath, criticFilePath):
         self.generator.save(genFilePath)
@@ -84,7 +71,7 @@ class wgan(keras.Model):
             )
         return tf.concat(fakeImgs, axis=1)
 
-    @tf.function
+    # @tf.function
     def gradient_penalty(self, realImgs, fakeImgs):
         """Calculates the gradient penalty.
         This loss is calculated on an interpolated image
@@ -94,22 +81,20 @@ class wgan(keras.Model):
         alpha = tf.random.normal([self.batchSize, 1, 1], 0.0, 1.0)
         diff = fakeImgs - realImgs
         interpolated = realImgs + alpha * diff
-        context = self.fakeContext + self.realContext
-        context /= 2
 
         with tf.GradientTape() as gpTape:
             gpTape.watch(interpolated)
             # 1. Get the critic output for this interpolated image.
-            pred = self.critic([interpolated, context], training=True)
+            pred = self.critic([interpolated], training=True)
 
         # 2. Calculate the gradients w.r.t to this interpolated image.
-        grads = gpTape.gradient(pred, [interpolated, context])[0]
+        grads = gpTape.gradient(pred, [interpolated])[0]
         # 3. Calculate the norm of the gradients.
         norm = tf.sqrt(tf.reduce_sum(tf.square(grads), axis=[1, 2]))
         gp = tf.reduce_mean((norm - 1.0) ** 2)
         return gp
 
-    @tf.function
+    # @tf.function
     def train_step(self, realImgs,):
         if isinstance(realImgs, tuple):
             realImgs = realImgs[0]
@@ -125,12 +110,10 @@ class wgan(keras.Model):
 
         #cannot recreate the synthetic data multiple times else it will confuse the generator (in theory)
         # Train the generator
+        self.generator.reset_states()
         with tf.GradientTape() as tape:
-            # Generate fake images using the generator
             fakeImgs = self.get_gen_out_for_critic()
-            # Get the critic logits for fake images
-            genImgLogits, _ = self.criticGenLoss([fakeImgs,self.fakeContext], training=True)
-            # Calculate the generator loss
+            genImgLogits = self.critic(fakeImgs, training=True)
             gLoss = self.g_loss_fn(genImgLogits)
 
         # Get the gradients w.r.t the generator loss
@@ -139,24 +122,17 @@ class wgan(keras.Model):
         self.gOptimizer.apply_gradients(
             zip(genGradient, self.generator.trainable_variables)
         )
-        # self.backup_genLoss_lstm()
-
 
         for i in range(self.cSteps):
             with tf.GradientTape() as tape:
-                fakeLogits, self.fakeContext = self.criticFake([fakeImgs, self.fakeContext], training=True)
-                realLogits, self.realContext = self.criticReal([realImgs, self.realContext], training=True)
+                fakeLogits = self.critic(fakeImgs, training=True)
+                realLogits = self.critic(realImgs, training=True)
 
-                # Calculate the critic loss using the fake and real image logits
                 cCost = self.c_loss_fn(real_img=realLogits, fake_img=fakeLogits)
-                # Calculate the gradient penalty
                 gp = self.gradient_penalty(realImgs, fakeImgs)
-                # Add the gradient penalty to the original critic loss
                 cLoss = cCost + gp * self.gpWeight
 
-            # Get the gradients w.r.t the critic loss
             cGradient = tape.gradient(cLoss, self.critic.trainable_variables)
-            # Update the weights of the critic using the critic optimizer
             self.c_optimizer.apply_gradients(
                 zip(cGradient, self.critic.trainable_variables)
             )
@@ -210,10 +186,7 @@ class wgan(keras.Model):
 
     def reset_states(self):
         self.generator.reset_states()
-        self.critic.reset_states()
-        self.cStatesForReal = self.init_state_backups()
-        self.cStatesForFake = self.init_state_backups()
-        self.cStatesForGenLoss = self.init_state_backups()
+        # self.critic.reset_states()
 
 
 if __name__ == "__main__":
