@@ -23,13 +23,13 @@ LSTM_GENERATOR_FILE = MODEL_DIR + LSTM_GENERATOR_NAME
 CNN_GENERATOR_FILE = MODEL_DIR
 CRITIC_FILE = MODEL_DIR + CRITIC_NAME
 
-GENERATOR_TIME_STEPS = 16
-CRITIC_TIME_STEPS = 128
+GENERATOR_TIME_STEPS = 64
+CRITIC_TIME_STEPS = 64
 NOISE_DIM = 128
 BATCH_SIZE = 32
 STEPS_PER_EPOCH = 1000
 
-NEPOCHS = 2 if gv.DEBUG else 10
+NEPOCHS = 2 if gv.DEBUG else 2
 NPREV_EPOCHS_DONE = 0
 # NPREV_EPOCHS_DONE = NEPOCHS
 
@@ -66,8 +66,43 @@ def nn_diagram(model, imgFile=None):
                               show_dtype=True,
                               show_layer_names=True)
 
+def get_lstm_critic(batchSize=BATCH_SIZE) -> keras.models.Model:
+    #128 X 48
+    inputLayer = keras.Input(
+        shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
+    inputContext = keras.Input(
+        shape=(CRITIC_TIME_STEPS, bcNames.nGanFeatures)
+    )
+
+    context = keras.layers.Dense(bcNames.nGanFeatures, activation=keras.activations.sigmoid)(inputContext)
+
+    x = layers.Multiply()((inputLayer, context))
+    x = layers.Concatenate(axis=-1)((inputLayer, x))
+    x = layers.Bidirectional(
+        layers.LSTM(
+            bcNames.nGanFeatures,
+            stateful=False,
+            return_sequences=False
+        )
+    )(x)
+    x = layers.BatchNormalization()(x)
+
+    nUnits = 300
+    x = layers.Dense(nUnits, activation=defaults.leaky_relu())(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Flatten()(x)
+    x = layers.Dense(nUnits, activation=defaults.leaky_relu())(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(nUnits, activation=defaults.leaky_relu())(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Dense(1)(x)
+
+    model = keras.models.Model(inputs=[inputLayer, inputContext], outputs=[x], name= CRITIC_NAME)
+    return model
+
 def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
-    # goal: 16 X 48
+    # goal: 64 X 48
     inputLayer = keras.Input(
         batch_shape=(batchSize, 1, NOISE_DIM,)
     )
@@ -76,6 +111,8 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
 
     args = [
         cBlocks.conv_args(nFilters=nFilters, kernelSize=4),
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=2),
+        cBlocks.conv_args(nFilters=nFilters, kernelSize=2),
         cBlocks.conv_args(nFilters=nFilters, kernelSize=2),
         cBlocks.conv_args(nFilters=nFilters, kernelSize=2),
     ]
@@ -87,22 +124,25 @@ def get_lstm_generator(batchSize=BATCH_SIZE) -> keras.models.Model:
         x = layers.Conv1DTranspose(**arg.kwargs)(x)
         x = cBlocks.block(x, activation=defaults.leaky_relu(), use_bn=True, )
 
-    x = layers.Bidirectional(
+    lstmContext = layers.Bidirectional(
         layers.LSTM(
             bcNames.nGanFeatures,
-            dropout=defaults.DROPOUT_PORTION,
             stateful=True,
             return_sequences=True
         )
     )(x)
-    # time = layers.Dense(1, keras.activations.hard_sigmoid)(x)
+
+    lstmContext = layers.Dense(bcNames.nGanFeatures, keras.activations.sigmoid)(lstmContext)
+
+    x = layers.BatchNormalization()(lstmContext)
+
     time = layers.Dense(1, keras.activations.sigmoid)(x)
     signal = layers.Dense(1, keras.activations.sigmoid)(x)
     sensors = layers.Dense(len(bcNames.allSensors), keras.activations.softmax)(x)
     labels = layers.Dense(bcNames.nLabels, keras.activations.softmax)(x)
     x = layers.Concatenate()([time, signal, sensors, labels])
 
-    model = keras.models.Model(inputs=[inputLayer], outputs=[x], name=LSTM_GENERATOR_NAME)
+    model = keras.models.Model(inputs=[inputLayer], outputs=[x, lstmContext], name=LSTM_GENERATOR_NAME)
     # model.compile(loss = keras.losses.CategoricalCrossentropy(),
     #               optimizer = defaults.optimizer(), metrics = defaults.METRICS)
     return model
@@ -169,7 +209,7 @@ def get_gan(loadGan=False):
         critic = keras.models.load_model(CRITIC_FILE)
     else:
         gen = get_lstm_generator()
-        critic = get_critic()
+        critic = get_lstm_critic()
 
     gan = wgan.wgan(
         critic, gen, defaults.NOISE_DIM, nCriticTimesteps=CRITIC_TIME_STEPS, nGenTimesteps=GENERATOR_TIME_STEPS,
@@ -215,12 +255,12 @@ if __name__ == "__main__":
     if gv.DEBUG:
         common.enable_tf_debug()
 
-    loadGan = True
-    # loadGan = False
+    # loadGan = True
+    loadGan = False
     # genOut = get_synthetic_data(loadGan, timeStepsFactor=100, nEpochs=0)
 
     gan = get_gan(loadGan)
-    # gan = run_gan(gan)
+    gan = run_gan(gan)
     # genOut = genApi.get_nBatches_lstm(10, gen=gan.generator, noiseDim=NOISE_DIM, batchSize=BATCH_SIZE)
     # genOutProc = postProc.gen_out_to_real_normalized(genOut.numpy())
 
