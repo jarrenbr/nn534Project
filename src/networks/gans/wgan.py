@@ -30,7 +30,7 @@ class wgan(keras.Model):
         gTimesteps,
         latentDim,
         batchSize = defaults.BATCH_SIZE,
-        criticExtraSteps=2,
+        criticExtraSteps=5,
         gpWeight=10.0,
     ):
         super(wgan, self).__init__()

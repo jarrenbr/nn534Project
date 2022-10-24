@@ -158,7 +158,7 @@ def get_critic() -> keras.models.Model:
     )
 
     sensors = layers.GaussianNoise(.025)(sensorInput)
-    x = layers.Concatenate()((timeInput, sensors))
+    x = layers.Concatenate(axis=-1)((timeInput, sensors))
     x = layers.Dense(bcNames.nGanFeatures, defaults.leaky_relu())(x)
 
     padding='causal'
